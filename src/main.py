@@ -1,7 +1,10 @@
+from image_processing import get_image, show_image
 
 
 def main():
-    print("Hello World")
+    im = get_image()
+
+    show_image(im)
 
 
 if __name__ == "__main__":
