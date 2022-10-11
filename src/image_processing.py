@@ -1,11 +1,17 @@
 import cv2 as cv
 import numpy as np
+import os
 
 from tkinter import filedialog
 
 
-def get_image():
-    return cv.imread(filedialog.askopenfilename())
+def get_image(name=None):
+    if name is None:
+        name = filedialog.askopenfilename()
+    else:
+        name = os.path.join(os.path.dirname(__file__), "..", "images", name)
+
+    return cv.imread(name)
 
 
 def show_image(image):
