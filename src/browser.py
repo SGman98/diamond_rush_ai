@@ -23,3 +23,7 @@ def get_board():
     img = np.frombuffer(screenshot, dtype=np.uint8)
     img = cv.imdecode(img, cv.IMREAD_COLOR)
     return img
+
+
+def close():
+    driver.close()
