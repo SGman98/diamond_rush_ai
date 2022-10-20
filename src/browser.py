@@ -2,6 +2,8 @@ import numpy as np
 import cv2 as cv
 
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 
 driver = webdriver.Firefox()
 
@@ -27,3 +29,15 @@ def get_board():
 
 def close():
     driver.close()
+
+
+def move(movements):
+    map_moves = {"a": Keys.ARROW_LEFT, "d": Keys.ARROW_RIGHT,
+                 "w": Keys.ARROW_UP, "s": Keys.ARROW_DOWN}
+
+    actions = ActionChains(driver)
+
+    for move in movements:
+        actions.key_down(map_moves[move]).pause(0.25).perform()
+        actions.key_up(map_moves[move]).perform()
+        print(f"Moved {move}")

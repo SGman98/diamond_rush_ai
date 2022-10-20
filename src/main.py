@@ -8,7 +8,6 @@ def main():
     browser.remove_help()
     input("Press enter to get board...")
     board = browser.get_board()
-    browser.close()
 
     board = img_proc.crop_img(board, 10, 15, top=2, bottom=1, left=1, right=1)
 
@@ -22,6 +21,21 @@ def main():
     new_board = img_proc.recreate_board(result, tileset_tiles, 8, 12)
 
     img_proc.show_image(new_board)
+
+    input("Press enter to start solving...")
+
+    solutions = {
+        1: "dddddsssaaaaassdsdddds",
+        2: "aaaaasawwwwwwwwwdwdsddssddsaassaas",
+        3: "dssssssassdddddddaaawwwwddwdssawaaawwssssssdswwwwwwawwdwddwdassdw",
+        4: "ddddssaaaaassddddddassaaaaasdwdsssdswwawddwdsss",
+        # ...
+    }
+
+    browser.move(solutions[1])
+
+    input("Press enter to exit...")
+    browser.close()
 
 
 if __name__ == "__main__":
