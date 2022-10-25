@@ -5,18 +5,23 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
-driver = webdriver.Firefox()
+driver = None
 
 
 def connect():
+    global driver
+    driver = webdriver.Firefox()
     driver.get("https://www.miniplay.com/embed/diamond-rush")
     driver.switch_to.frame(driver.find_element("css selector", "iframe"))
+    return driver
 
 
-def remove_help():
-    driver.execute_script("window.localStorage.setItem('isNewPlayer','false')")
+def select_level(level):
+    driver.execute_script(
+        f"window.localStorage.setItem('levelToStart','Level {level}')")
     driver.refresh()
     driver.switch_to.frame(driver.find_element("css selector", "iframe"))
+    return driver
 
 
 def get_board():
@@ -38,6 +43,6 @@ def move(movements):
     actions = ActionChains(driver)
 
     for move in movements:
-        actions.key_down(map_moves[move]).pause(0.25).perform()
-        actions.key_up(map_moves[move]).perform()
+        actions.key_down(map_moves[move]).pause(0.13).perform()
+        actions.key_up(map_moves[move]).pause(0.13).perform()
         print(f"Moved {move}")

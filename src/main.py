@@ -1,42 +1,38 @@
+import time
+
 import browser
+import ai
 import image_processing as img_proc
 
 
-def main():
-    browser.connect()
-    input("Press enter to remove help...")
-    browser.remove_help()
-    input("Press enter to get board...")
-    board = browser.get_board()
+def main(lvl):
+    browser.select_level(lvl)
 
-    board = img_proc.crop_img(board, 10, 15, top=2, bottom=1, left=1, right=1)
+    time.sleep(3)
 
-    tileset = img_proc.get_image("tileset.png")
+    # img_proc.process_board()
 
-    board_tiles = img_proc.get_tiles(board, 8, 12)
-    tileset_tiles = img_proc.get_tiles(tileset, 8, 8)[:-3]
-
-    result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.6, 13)
-
-    new_board = img_proc.recreate_board(result, tileset_tiles, 8, 12)
-
-    img_proc.show_image(new_board)
-
-    input("Press enter to start solving...")
-
-    solutions = {
-        1: "dddddsssaaaaassdsdddds",
-        2: "aaaaasawwwwwwwwwdwdsddssddsaassaas",
-        3: "dssssssassdddddddaaawwwwddwdssawaaawwssssssdswwwwwwawwdwddwdassdw",
-        4: "ddddssaaaaassddddddassaaaaasdwdsssdswwawddwdsss",
-        # ...
-    }
-
-    browser.move(solutions[1])
-
-    input("Press enter to exit...")
-    browser.close()
+    browser.move(ai.get_movement(lvl))
 
 
 if __name__ == "__main__":
-    main()
+    browser.connect()
+
+    while True:
+        user_input = input("Select level (1-20) or (q)uit: ")
+
+        if user_input == "q":
+            break
+
+        if not user_input.isdigit():
+            print("Invalid input")
+            continue
+
+        if int(user_input) not in range(1, 21):
+            print("Invalid level")
+            continue
+
+        main(int(user_input))
+
+    browser.close()
+    exit()

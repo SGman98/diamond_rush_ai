@@ -2,7 +2,8 @@ import cv2 as cv
 import numpy as np
 import os
 
-from tkinter import filedialog
+import browser
+import image_processing as img_proc
 
 
 def get_image(name):
@@ -83,3 +84,23 @@ def recreate_board(indexes, tiles, cols, rows):
                x * tile_width:(x + 1) * tile_width] = tiles[index]
 
     return result
+
+
+def process_board():
+
+    board = browser.get_board()
+
+    board = img_proc.crop_img(board, 10, 15, top=2, bottom=1, left=1, right=1)
+
+    tileset = img_proc.get_image("tileset.png")
+
+    board_tiles = img_proc.get_tiles(board, 8, 12)
+    tileset_tiles = img_proc.get_tiles(tileset, 8, 8)[:-3]
+
+    result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.6, 13)
+
+    new_board = img_proc.recreate_board(result, tileset_tiles, 8, 12)
+
+    img_proc.show_image(new_board)
+
+    input("Press enter to start solving...")
