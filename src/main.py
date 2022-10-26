@@ -10,9 +10,10 @@ def main(lvl):
 
     time.sleep(3)
 
-    # img_proc.process_board()
+    result = img_proc.process_board()
 
-    browser.move(ai.get_movement(lvl))
+    # browser.move(ai.get_movement(lvl))
+    browser.move(ai.get_movement_from_array(result))
 
 
 if __name__ == "__main__":

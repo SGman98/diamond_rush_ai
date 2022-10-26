@@ -66,18 +66,100 @@ def compare_all_tiles(tiles_a, tiles_b, error_margin=0.9, default_value=-1):
                 max_index = j
         if max_val < error_margin:
             max_index = default_value
-        print(f"Tile {i} is {max_index} with {max_val}")
+        # print(f"Tile {i} is {max_index} with {max_val}")
         results.append(max_index)
     return np.array(results)
 
 
-def recreate_board(indexes, tiles, cols, rows):
+def board_to_processable_array(board):
+    # if board is 0..=6     => 'W' (wall)
+    # if board is 7..=15    => 'P' (path)
+    # if board is 16        => 'D' (diamond)
+    # if board is 17 or 18  => 'E' (exit)
+    # if board is 19        => 'C' (closed door)
+    # if board is 20        => 'O' (open door)
+    # if board is 21        => 'H' (hole)
+    # if board is 22        => 'P' (path) (filled hole)
+    # if board is 23 or 24  => 'K' (key)
+    # if board is 25..=33   => 'L' (lava)
+    # if board is 34        => 'G' (gate) (key door)
+    # if board is 35..=54   => 'W' (wall)
+    # if board is 55 or 56  => 'B' (button)
+    # if board is 57        => 'W' (wall) (activated spikes)
+    # if board is 58        => 'S' (spikes) (deactivated spikes)
+    # if board is 59        => 'R' (rock)
+    # if board is 60        => '#' (player) (start)
+
+    result = []
+    for row in board:
+        new_row = []
+        for tile in row:
+            if tile in range(0, 7):
+                new_row.append('W')
+            elif tile in range(7, 16):
+                new_row.append('P')
+            elif tile == 16:
+                new_row.append('D')
+            elif tile in range(17, 19):
+                new_row.append('E')
+            elif tile == 19:
+                new_row.append('C')
+            elif tile == 20:
+                new_row.append('O')
+            elif tile == 21:
+                new_row.append('H')
+            elif tile == 22:
+                new_row.append('P')
+            elif tile in range(23, 25):
+                new_row.append('K')
+            elif tile in range(25, 34):
+                new_row.append('L')
+            elif tile == 34:
+                new_row.append('G')
+            elif tile in range(35, 55):
+                new_row.append('W')
+            elif tile == 55:  # Set to 'P' because is failling
+                new_row.append('P')
+            elif tile in range(55, 57):
+                new_row.append('B')
+            elif tile == 57:
+                new_row.append('W')
+            elif tile == 58:
+                new_row.append('S')
+            elif tile == 59:
+                new_row.append('R')
+            elif tile == 60:
+                new_row.append('#')
+        result.append(new_row)
+    return np.array(result)
+
+
+def recreate_board(types, tiles, cols, rows):
     tile_width, tile_height = tiles[0].shape[:2]
     result = np.zeros((rows * tile_height, cols * tile_width, 3), np.uint8)
 
-    for i, index in enumerate(indexes):
-        if index == -1:
-            continue
+    types = types.flatten()
+
+    resolve = {
+        'W': 0,
+        'P': 7,
+        'D': 16,
+        'E': 17,
+        'C': 19,
+        'O': 20,
+        'H': 21,
+        'K': 23,
+        'L': 25,
+        'G': 34,
+        'B': 56,
+        'S': 58,
+        'R': 59,
+        '#': 60
+    }
+
+    # replace tiles
+    for i, type in enumerate(types):
+        index = resolve.get(type, 0)
         x = i % cols
         y = i // cols
         result[y * tile_height:(y + 1) * tile_height,
@@ -97,10 +179,16 @@ def process_board():
     board_tiles = img_proc.get_tiles(board, 8, 12)
     tileset_tiles = img_proc.get_tiles(tileset, 8, 8)[:-3]
 
-    result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.6, 13)
+    result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.5, 13)
+
+    result = board_to_processable_array(result.reshape(12, 8))
 
     new_board = img_proc.recreate_board(result, tileset_tiles, 8, 12)
 
+    # pretty print
+    for row in result:
+        print(row)
+
     img_proc.show_image(new_board)
 
-    input("Press enter to start solving...")
+    return result
