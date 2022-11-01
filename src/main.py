@@ -1,11 +1,11 @@
 import time
 
-import browser
 import ai
 import image_processing as img_proc
+from browser import Browser
 
 
-def main(lvl):
+def start_game(lvl, browser):
     browser.select_level(lvl)
 
     time.sleep(3)
@@ -13,12 +13,12 @@ def main(lvl):
     board = browser.get_board()
     result = img_proc.process_board(board)
 
-    # browser.move(ai.get_movement(lvl))
-    browser.move(ai.get_movement_from_array(result))
+    movement = ai.get_movement_from_array(result)
+    browser.move(movement)
 
 
-if __name__ == "__main__":
-    browser.connect()
+def main():
+    browser = Browser()
 
     while True:
         user_input = input("Select level (1-20) or (q)uit: ")
@@ -30,11 +30,16 @@ if __name__ == "__main__":
             print("Invalid input")
             continue
 
-        if int(user_input) not in range(1, 21):
+        user_input = int(user_input)
+
+        if user_input not in range(1, 21):
             print("Invalid level")
             continue
 
-        main(int(user_input))
+        start_game(user_input, browser)
 
     browser.close()
-    exit()
+
+
+if __name__ == "__main__":
+    main()
