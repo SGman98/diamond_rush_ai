@@ -137,6 +137,9 @@ def board_to_processable_array(board):
                 new_row.append('R')
             elif tile == 60:
                 new_row.append('#')
+            elif tile == 61:
+                new_row.append('E')
+
         result.append(new_row)
     return np.array(result)
 
@@ -184,7 +187,7 @@ def process_board():
     tileset = img_proc.get_image("tileset.png")
 
     board_tiles = img_proc.get_tiles(board, 8, 12)
-    tileset_tiles = img_proc.get_tiles(tileset, 8, 8)[:-3]
+    tileset_tiles = img_proc.get_tiles(tileset, 8, 8)[:-2]
 
     result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.5, 13)
 
