@@ -144,7 +144,10 @@ def board_to_processable_array(board):
     return np.array(result)
 
 
-def recreate_board(types, tiles, cols, rows):
+def recreate_board(types, cols, rows):
+    tileset = img_proc.get_image("tileset.png")
+    tiles = img_proc.get_tiles(tileset, 8, 8)[:-2]
+
     tile_width, tile_height = tiles[0].shape[:2]
     result = np.zeros((rows * tile_height, cols * tile_width, 3), np.uint8)
 
@@ -178,10 +181,7 @@ def recreate_board(types, tiles, cols, rows):
     return result
 
 
-def process_board():
-
-    board = browser.get_board()
-
+def process_board(board):
     board = img_proc.crop_img(board, 10, 15, top=2, bottom=1, left=1, right=1)
 
     tileset = img_proc.get_image("tileset.png")
@@ -192,13 +192,5 @@ def process_board():
     result = img_proc.compare_all_tiles(board_tiles, tileset_tiles, 0.5, 13)
 
     result = board_to_processable_array(result.reshape(12, 8))
-
-    new_board = img_proc.recreate_board(result, tileset_tiles, 8, 12)
-
-    # pretty print
-    for row in result:
-        print(row)
-
-    img_proc.show_image(new_board)
 
     return result
