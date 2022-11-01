@@ -59,14 +59,21 @@ def compare_all_tiles(tiles_a, tiles_b, error_margin=0.9, default_value=-1):
     results = []
     for i, tile_a in enumerate(tiles_a):
         max_val, max_index = 0, 0
+        if i < 8:
+            tile_a = crop_img(tile_a, 1, 2, top=1)
+
         for j, tile_b in enumerate(tiles_b):
+            if i < 8:
+                tile_b = crop_img(tile_b, 1, 2, top=1)
+
             val = compare_tiles(tile_a, tile_b)
-            if val > max_val:
+
+            if val > max_val and val != 1:
                 max_val = val
                 max_index = j
         if max_val < error_margin:
             max_index = default_value
-        # print(f"Tile {i} is {max_index} with {max_val}")
+
         results.append(max_index)
     return np.array(results)
 
