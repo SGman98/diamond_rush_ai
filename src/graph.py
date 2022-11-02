@@ -116,8 +116,8 @@ class Spot:
             'S': self.make_spike,
             'R': self.make_rock,
 
-            'E': lambda: None,
-            '#': lambda: None,
+            'E': self.make_wall,
+            '#': self.make_path,
         }
 
         if (value in transform):
@@ -128,15 +128,6 @@ class Spot:
 
     def is_blocked(self):
         return self.state == 'W'
-
-    def is_path(self):
-        return self.state == 'P'
-
-    def is_start(self):
-        return self.state == 'S'
-
-    def is_exit(self):
-        return self.state == 'E'
 
     def update_neighbors(self, grid):
         self.neighbors = []
@@ -247,15 +238,14 @@ def path_to_movement(path):
 
 
 class Player:
-    def __init__(self, board, start, end, depth=0):
+    def __init__(self, board, start, end, has_key=False, depth=0):
         self.board = board
         self.pos = start
         self.end = end
         self.depth = depth
-        self.has_key = False
+        self.has_key = has_key
         self.diamonds = self.get_total_diamonds()
         self.movement = []
-        self.logging = False
 
     def get_total_diamonds(self):
         total_diamonds = 0
@@ -279,6 +269,8 @@ class Player:
                     interest_points.append((i, j))
                 elif not self.has_key and spot == 'K':
                     interest_points.append((i, j))
+                elif self.has_key and spot == 'G':
+                    interest_points.append((i, j))
                 elif spot == 'D':
                     interest_points.append((i, j))
 
@@ -291,9 +283,16 @@ class Player:
             grid.append([])
 
             for j, spot in enumerate(row):
+
+                state = self.board[i][j]
+                if spot == 'G' and self.has_key and end == (i, j):
+                    state = 'P'
+                if spot == 'E' and self.diamonds == 0 and end == (i, j):
+                    state = 'P'
+
                 spot = Spot(i, j, len(self.board), len(row))
 
-                spot.make_state(self.board[i][j])
+                spot.make_state(state)
 
                 grid[i].append(spot)
 
@@ -337,6 +336,10 @@ class Player:
         if self.board[self.pos[0]][self.pos[1]] == 'S':
             self.board[self.pos[0]][self.pos[1]] = 'W'
             return
+        if self.board[self.pos[0]][self.pos[1]] == 'G':
+            self.board[self.pos[0]][self.pos[1]] = 'P'
+            self.has_key = False
+            return
 
     def print(self, message):
         global LOGGING
@@ -351,7 +354,6 @@ class Player:
         global LOGGING
         if self.pos[0] == 10 and self.depth == 1:
             LOGGING = True
-        self.print(f"New Player from position {self.pos[0]}, {self.pos[1]}")
         interest_points = self.get_interest_points()
 
         if self.board_to_string() in MEMO:
@@ -368,10 +370,11 @@ class Player:
 
         for point in interest_points:
             board_copy = self.board.copy()
-            new_player = Player(board_copy, self.pos, self.end, self.depth+1)
+            new_player = Player(board_copy, self.pos,
+                                self.end, self.has_key, self.depth+1)
 
             new_player.move(point)
-            self.print(f"Get {point} movement {''.join(new_player.movement)}")
+            self.print(f"To {point} move: {''.join(new_player.movement)}")
 
             if new_player.pos == self.pos:
                 self.print('No path found')
