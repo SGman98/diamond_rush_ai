@@ -4,6 +4,8 @@ import numpy as np
 
 LOGGING = True
 
+MEMO = {}
+
 
 class Spot:
     def __init__(self, x, y, rows, cols):
@@ -352,6 +354,16 @@ class Player:
         self.print(f"New Player from position {self.pos[0]}, {self.pos[1]}")
         interest_points = self.get_interest_points()
 
+        if self.board_to_string() in MEMO:
+            if MEMO[self.board_to_string()][0]:
+                movement = MEMO[self.board_to_string()][1]
+                self.print(f"Found movement {movement} in memo")
+                self.movement = movement
+                return
+            else:
+                self.print(f"Found no movement in memo")
+                return False
+
         result_ = False
 
         for point in interest_points:
@@ -383,4 +395,5 @@ class Player:
         if not result_:
             self.print(f"Player failed to reach the end")
 
+        MEMO[self.board_to_string()] = (result_, self.movement)
         return result_
