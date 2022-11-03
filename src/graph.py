@@ -238,11 +238,12 @@ def path_to_movement(path):
 
 
 class Player:
-    def __init__(self, board, start, end, has_key=False, depth=0):
+    def __init__(self, board, start, end, has_key=False, depth=0, max_path_length=1000):
         self.board = board
         self.pos = start
         self.end = end
         self.depth = depth
+        self.max_path_length = max_path_length
         self.has_key = has_key
         self.diamonds = self.get_total_diamonds()
         self.movement = ''
@@ -289,7 +290,9 @@ class Player:
             else:
                 interest_points_final.append(path)
 
-        return interest_points_final
+        def shorter_than_max(x): return len(x) <= self.max_path_length
+
+        return list(filter(shorter_than_max, interest_points_final))
 
     def get_path(self, end):
         grid = []
@@ -391,8 +394,14 @@ class Player:
 
         for path in interest_points:
 
-            new_player = Player(self.board.copy(), self.pos,
-                                self.end, self.has_key, self.depth+1)
+            new_player = Player(
+                self.board.copy(),
+                self.pos,
+                self.end,
+                self.has_key,
+                self.depth+1,
+                self.max_path_length - len(path)
+            )
 
             new_player.move(path)
             new_player.print(f"Moved to {new_player.pos} with path {path}")
@@ -400,7 +409,10 @@ class Player:
             if new_player.solve():
                 if len(result) == 0 or len(new_player.movement) < len(result):
                     result = new_player.movement
+                    self.max_path_length = min(
+                        self.max_path_length, len(result))
                     self.print(f"New best path: {result}")
+                    break  # comment this line to find the optimal path
                 else:
                     self.print(f"Same or worse path: {new_player.movement}")
 
