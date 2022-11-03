@@ -245,7 +245,7 @@ class Player:
         self.depth = depth
         self.has_key = has_key
         self.diamonds = self.get_total_diamonds()
-        self.movement = []
+        self.movement = ''
 
     def get_total_diamonds(self):
         total_diamonds = 0
@@ -262,19 +262,34 @@ class Player:
 
         for i, row in enumerate(self.board):
             for j, spot in enumerate(row):
-                if self.get_path((i, j)) == []:
+                path = self.get_path((i, j))
+
+                if path == '':
                     continue
 
                 if self.diamonds == 0 and spot == 'E':
-                    interest_points.append((i, j))
+                    interest_points.append(path)
                 elif not self.has_key and spot == 'K':
-                    interest_points.append((i, j))
+                    interest_points.append(path)
                 elif self.has_key and spot == 'G':
-                    interest_points.append((i, j))
+                    interest_points.append(path)
                 elif spot == 'D':
-                    interest_points.append((i, j))
+                    interest_points.append(path)
 
-        return interest_points
+        interest_points.sort(key=lambda x: len(x))
+
+        interest_points_final = []
+        for path in interest_points:
+            for path2 in interest_points:
+                if path == path2:
+                    continue
+
+                if path.startswith(path2):
+                    break
+            else:
+                interest_points_final.append(path)
+
+        return interest_points_final
 
     def get_path(self, end):
         grid = []
@@ -307,10 +322,10 @@ class Player:
         # transform path to movement W, A, S, D
         movement = path_to_movement(path)
 
-        return movement
+        return ''.join(movement)
 
-    def move(self, end):
-        self.movement = self.get_path(end)
+    def move(self, path):
+        self.movement = path
 
         for direction in self.movement:
             if direction == 'w':
@@ -341,7 +356,7 @@ class Player:
             self.has_key = False
             return
 
-    def print(self, message):
+    def print(self, message=''):
         global LOGGING
         if not LOGGING:
             return
@@ -352,51 +367,53 @@ class Player:
 
     def solve(self):
         global LOGGING
-        if self.pos[0] == 10 and self.depth == 1:
-            LOGGING = True
-        interest_points = self.get_interest_points()
 
-        if self.board_to_string() in MEMO:
-            if MEMO[self.board_to_string()][0]:
-                movement = MEMO[self.board_to_string()][1]
-                self.print(f"Found movement {movement} in memo")
-                self.movement = movement
-                return
-            else:
-                self.print(f"Found no movement in memo")
+        if self.pos == self.end:
+            self.print(f"Reached end")
+            return True
+
+        memo_key = str(self)
+
+        if memo_key in MEMO:
+            movement = MEMO[memo_key]
+
+            if movement == '':
+                self.print(f"Player failed to reach the end (memo)")
                 return False
 
-        result_ = False
+            self.print(f"Reach end with path {movement} (memo)")
+            self.movement += movement
+            return True
 
-        for point in interest_points:
-            board_copy = self.board.copy()
-            new_player = Player(board_copy, self.pos,
+        result = ''
+
+        interest_points = self.get_interest_points()
+
+        for path in interest_points:
+
+            new_player = Player(self.board.copy(), self.pos,
                                 self.end, self.has_key, self.depth+1)
 
-            new_player.move(point)
-            self.print(f"To {point} move: {''.join(new_player.movement)}")
-
-            if new_player.pos == self.pos:
-                self.print('No path found')
-                result_ = False
-                break
-
-            if new_player.pos == new_player.end:
-                self.print("Player reached the end")
-                self.movement += new_player.movement
-
-                result_ = True
-                break
+            new_player.move(path)
+            new_player.print(f"Moved to {new_player.pos} with path {path}")
 
             if new_player.solve():
-                self.movement += new_player.movement
-                if (self.depth == 0):
-                    self.print(f"Result: {''.join(self.movement)}")
-                result_ = True
-                break
+                if len(result) == 0 or len(new_player.movement) < len(result):
+                    result = new_player.movement
+                    self.print(f"New best path: {result}")
+                else:
+                    self.print(f"Same or worse path: {new_player.movement}")
 
-        if not result_:
-            self.print(f"Player failed to reach the end")
+        MEMO[memo_key] = result
 
-        MEMO[self.board_to_string()] = (result_, self.movement)
-        return result_
+        if result != '':
+            self.movement += result
+            if self.depth == 0:
+                print(f"Final path: {self.movement}")
+            return True
+
+        self.print(f"Player failed to reach the end")
+        return False
+
+    def __repr__(self):
+        return f"Player({self.board_to_string()}, {self.pos}, {self.end}, {self.has_key}, {self.depth})"
