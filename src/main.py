@@ -42,4 +42,18 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if len(sys.argv) > 1:
+        assert sys.argv[1].isdigit(), "Invalid input"
+
+        level = int(sys.argv[1])
+
+        assert level in range(1, 21), "Invalid level"
+
+        browser = Browser()
+        time.sleep(3)
+        start_game(level, browser)
+        browser.close()
+    else:
+        main()
