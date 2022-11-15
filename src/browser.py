@@ -1,4 +1,4 @@
-import cv2 as cv
+from cv2 import cv2 as cv
 import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains

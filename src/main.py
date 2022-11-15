@@ -13,6 +13,9 @@ def start_game(lvl, browser):
     board = browser.get_board()
     result = img_proc.process_board(board)
 
+    # recreated = img_proc.recreate_board(result, 8, 12)
+    # img_proc.show_image(recreated)
+
     movement = ai.get_movement_from_array(result)
     browser.move(movement)
 

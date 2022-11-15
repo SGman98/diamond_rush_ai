@@ -1,7 +1,5 @@
 from queue import PriorityQueue
 
-import numpy as np
-
 LOGGING = True
 
 MEMO = {}
@@ -148,7 +146,7 @@ class Spot:
             if not grid[self.x][self.y - 1].is_blocked():
                 self.neighbors.append(grid[self.x][self.y - 1])
 
-    def __lt__(self, other):
+    def __lt__(self, _):
         return False
 
     # printable representation of the object
@@ -238,7 +236,15 @@ def path_to_movement(path):
 
 
 class Player:
-    def __init__(self, board, start, end, has_key=False, depth=0, max_path_length=1000):
+    def __init__(
+        self,
+        board,
+        start,
+        end,
+        has_key=False,
+        depth=0,
+        max_path_length=1000
+    ):
         self.board = board
         self.pos = start
         self.end = end
@@ -372,7 +378,7 @@ class Player:
         global LOGGING
 
         if self.pos == self.end:
-            self.print(f"Reached end")
+            self.print("Reached end")
             return True
 
         memo_key = str(self)
@@ -381,7 +387,7 @@ class Player:
             movement = MEMO[memo_key]
 
             if movement == '':
-                self.print(f"Player failed to reach the end (memo)")
+                self.print("Player failed to reach the end (memo)")
                 return False
 
             self.print(f"Reach end with path {movement} (memo)")
@@ -424,8 +430,14 @@ class Player:
                 print(f"Final path: {self.movement}")
             return True
 
-        self.print(f"Player failed to reach the end")
+        self.print("Player failed to reach the end")
         return False
 
     def __repr__(self):
-        return f"Player({self.board_to_string()}, {self.pos}, {self.end}, {self.has_key}, {self.depth})"
+        return "Player({}, {}, {}, {}, {})".format(
+            self.board_to_string(),
+            self.pos,
+            self.end,
+            self.has_key,
+            self.depth
+        )

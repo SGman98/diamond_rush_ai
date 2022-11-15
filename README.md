@@ -20,4 +20,4 @@ python src/main.py
 
 ## Project structure
 
-- Use image processing to detect the game board.
+*   Use image processing to detect the game board.
