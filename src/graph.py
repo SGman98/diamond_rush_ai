@@ -274,13 +274,12 @@ class Player:
                 if path == '':
                     continue
 
-                if self.diamonds == 0 and spot == 'E':
-                    interest_points.append(path)
-                elif not self.has_key and spot == 'K':
-                    interest_points.append(path)
-                elif self.has_key and spot == 'G':
-                    interest_points.append(path)
-                elif spot == 'D':
+                is_exit = self.diamonds == 0 and spot == 'E'
+                is_key = not self.has_key and spot == 'K'
+                is_gate = self.has_key and spot == 'G'
+                is_diamond = spot == 'D'
+
+                if is_exit or is_key or is_gate or is_diamond:
                     interest_points.append(path)
 
         interest_points.sort(key=lambda x: len(x))
