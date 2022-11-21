@@ -12,8 +12,26 @@ class Spot:
 
         self.closed = False
 
-        self.state = ''
+        # collectable items
         self.isdiamond = False
+        self.iskey = False
+
+        # doors and gates
+        self.isdoor = False
+        self.isgate = False
+
+        # interactive spots
+        self.isbutton = False
+        self.isspike = False
+        self.isrock = False
+
+        # other
+        self.ishole = False
+        self.islava = False
+
+        self.ispath = False  # whether the spot is a path or wall
+
+        self.isexit = False
 
         self.total_rows = rows
         self.total_cols = cols
@@ -23,12 +41,6 @@ class Spot:
     def get_pos(self):
         return self.x, self.y
 
-    def is_closed(self):
-        return self.closed
-
-    def is_open(self):
-        return not self.closed
-
     def make_closed(self):
         self.closed = True
 
@@ -36,68 +48,69 @@ class Spot:
         self.closed = False
 
     def make_wall(self):
-        self.state = 'W'
+        self.ispath = False
 
     def make_path(self):
-        self.state = 'P'
+        self.ispath = True
 
     def make_diamond(self):
-        self.state = 'P'
+        self.make_path()
         self.isdiamond = True
 
     def make_exit(self):
-        self.state = 'E'
+        self.isexit = True
 
     def make_closed_door(self):
-        self.state = 'W'
+        self.make_wall()
         self.isdoor = True
 
     def make_open_door(self):
-        self.state = 'P'
+        self.make_path()
         self.isdoor = True
 
     def make_hole(self):
-        self.state = 'W'
+        self.make_wall()
         self.ishole = True
 
     def make_filled_hole(self):
-        self.state = 'P'
+        self.make_path()
         self.ishole = False
 
     def make_key(self):
-        self.state = 'P'
+        self.make_path()
         self.iskey = True
 
     def make_lava(self):
-        self.state = 'W'
+        self.make_wall()
         self.islava = True
 
     def make_closed_gate(self):
-        self.state = 'W'
+        self.make_wall()
         self.isgate = True
 
     def make_open_gate(self):
-        self.state = 'P'
+        self.make_path()
         self.isgate = True
 
     def make_button(self):
-        self.state = 'P'
+        self.make_path()
         self.isbutton = True
 
     def make_spike(self):
-        self.state = 'P'
+        self.make_path()
         self.isspike = True
 
     def make_closed_spike(self):
-        self.state = 'W'
+        self.make_wall()
         self.isspike = True
 
     def make_rock(self):
-        self.state = 'W'
+        self.make_wall()
         self.isrock = True
 
-    def make_start(self):
-        self.state = 'S'
+    def make_exit(self):
+        self.make_wall()
+        self.isexit = True
 
     def make_state(self, value):
         transform = {
@@ -114,7 +127,7 @@ class Spot:
             'S': self.make_spike,
             'R': self.make_rock,
 
-            'E': self.make_wall,
+            'E': self.make_exit,
             '#': self.make_path,
         }
 
@@ -125,7 +138,7 @@ class Spot:
             self.make_path()
 
     def is_blocked(self):
-        return self.state == 'W'
+        return not self.ispath
 
     def update_neighbors(self, grid):
         self.neighbors = []
@@ -145,6 +158,38 @@ class Spot:
         if self.y > 0:
             if not grid[self.x][self.y - 1].is_blocked():
                 self.neighbors.append(grid[self.x][self.y - 1])
+
+    def to_string(self):
+        str = ''
+        str += '1' if self.ispath else '0'
+        str += '1' if self.isdiamond else '0'
+        str += '1' if self.iskey else '0'
+        str += '1' if self.isdoor else '0'
+        str += '1' if self.isgate else '0'
+        str += '1' if self.isbutton else '0'
+        str += '1' if self.isspike else '0'
+        str += '1' if self.isrock else '0'
+        str += '1' if self.ishole else '0'
+        str += '1' if self.islava else '0'
+        str += '1' if self.isexit else '0'
+
+        return str
+
+    def copy(self):
+        spot = Spot(self.x, self.y, self.total_rows, self.total_cols)
+        spot.closed = self.closed
+        spot.isdiamond = self.isdiamond
+        spot.iskey = self.iskey
+        spot.isdoor = self.isdoor
+        spot.isgate = self.isgate
+        spot.isbutton = self.isbutton
+        spot.isspike = self.isspike
+        spot.isrock = self.isrock
+        spot.ishole = self.ishole
+        spot.islava = self.islava
+        spot.ispath = self.ispath
+        spot.isexit = self.isexit
+        return spot
 
     def __lt__(self, _):
         return False
@@ -245,7 +290,10 @@ class Player:
         depth=0,
         max_path_length=1000
     ):
-        self.board = board
+        if depth != 0:
+            self.board = board
+        else:
+            self.board = self.create_board(board)
         self.pos = start
         self.end = end
         self.depth = depth
@@ -259,7 +307,7 @@ class Player:
 
         for row in self.board:
             for spot in row:
-                if spot == 'D':
+                if spot.isdiamond:
                     total_diamonds += 1
 
         return total_diamonds
@@ -274,10 +322,10 @@ class Player:
                 if path == '':
                     continue
 
-                is_exit = self.diamonds == 0 and spot == 'E'
-                is_key = not self.has_key and spot == 'K'
-                is_gate = self.has_key and spot == 'G'
-                is_diamond = spot == 'D'
+                is_exit = self.diamonds == 0 and spot.isexit
+                is_key = not self.has_key and spot.iskey
+                is_gate = self.has_key and spot.isgate
+                is_diamond = spot.isdiamond
 
                 if is_exit or is_key or is_gate or is_diamond:
                     interest_points.append(path)
@@ -300,20 +348,38 @@ class Player:
         return list(filter(shorter_than_max, interest_points_final))
 
     def get_path(self, end):
+        grid = self.get_board_copy()
+        for i, row in enumerate(grid):
+            for j, spot in enumerate(row):
+                if spot.isgate and self.has_key and end == (i, j):
+                    spot.make_path()
+                if spot.isexit and self.diamonds == 0 and end == (i, j):
+                    spot.make_path()
+
+        for row in grid:
+            for spot in row:
+                spot.update_neighbors(grid)
+
+        # get path
+        start = grid[self.pos[0]][self.pos[1]]
+        end = grid[end[0]][end[1]]
+
+        path = astar(grid, start, end)
+
+        # transform path to movement W, A, S, D
+        movement = path_to_movement(path)
+
+        return ''.join(movement)
+
+    def create_board(self, board):
         grid = []
 
-        for i, row in enumerate(self.board):
+        for i, row in enumerate(board):
             grid.append([])
 
             for j, spot in enumerate(row):
-
-                state = self.board[i][j]
-                if spot == 'G' and self.has_key and end == (i, j):
-                    state = 'P'
-                if spot == 'E' and self.diamonds == 0 and end == (i, j):
-                    state = 'P'
-
-                spot = Spot(i, j, len(self.board), len(row))
+                state = spot
+                spot = Spot(i, j, len(board), len(row))
 
                 spot.make_state(state)
 
@@ -323,19 +389,27 @@ class Player:
             for spot in row:
                 spot.update_neighbors(grid)
 
-        # get path
-        start = grid[self.pos[0]][self.pos[1]]
-        path = astar(grid, start, grid[end[0]][end[1]])
+        return grid
 
-        # transform path to movement W, A, S, D
-        movement = path_to_movement(path)
+    def get_board_copy(self):
+        board_copy = []
 
-        return ''.join(movement)
+        for i, row in enumerate(self.board):
+            board_copy.append([])
+
+            for j, spot in enumerate(row):
+                board_copy[i].append(spot.copy())
+
+        for row in board_copy:
+            for spot in row:
+                spot.update_neighbors(board_copy)
+
+        return board_copy
 
     def move(self, path):
         self.movement = path
 
-        for direction in self.movement:
+        def move_player(direction):
             if direction == 'w':
                 self.pos = (self.pos[0] - 1, self.pos[1])
             elif direction == 's':
@@ -345,24 +419,30 @@ class Player:
             elif direction == 'd':
                 self.pos = (self.pos[0], self.pos[1] + 1)
 
+        for direction in self.movement:
+            move_player(direction)
             self.update_state()
 
     def update_state(self):
-        if self.board[self.pos[0]][self.pos[1]] == 'K' and not self.has_key:
+        spot = self.board[self.pos[0]][self.pos[1]]
+        if spot.iskey and not self.has_key:
             self.has_key = True
-            self.board[self.pos[0]][self.pos[1]] = 'P'
+            spot.iskey = False
             return
-        if self.board[self.pos[0]][self.pos[1]] == 'D':
+        if spot.isdiamond:
             self.diamonds -= 1
-            self.board[self.pos[0]][self.pos[1]] = 'P'
+            spot.isdiamond = False
             return
-        if self.board[self.pos[0]][self.pos[1]] == 'S':
-            self.board[self.pos[0]][self.pos[1]] = 'W'
+        if spot.isspike:
+            spot.make_wall()
             return
-        if self.board[self.pos[0]][self.pos[1]] == 'G':
-            self.board[self.pos[0]][self.pos[1]] = 'P'
+        if spot.isgate and self.has_key:
+            spot.make_path()
+            spot.isgate = False
             self.has_key = False
             return
+        if spot.isgate:
+            print("wtf")
 
     def print(self, message=''):
         global LOGGING
@@ -371,7 +451,7 @@ class Player:
         print(">\t"*self.depth + message)
 
     def board_to_string(self):
-        return '\n'.join([''.join(row) for row in self.board])
+        return '.'.join([spot.to_string() for row in self.board for spot in row])
 
     def solve(self):
         global LOGGING
@@ -400,7 +480,7 @@ class Player:
         for path in interest_points:
 
             new_player = Player(
-                self.board.copy(),
+                self.get_board_copy(),
                 self.pos,
                 self.end,
                 self.has_key,
@@ -433,10 +513,4 @@ class Player:
         return False
 
     def __repr__(self):
-        return "Player({}, {}, {}, {}, {})".format(
-            self.board_to_string(),
-            self.pos,
-            self.end,
-            self.has_key,
-            self.depth
-        )
+        return self.board_to_string() + str(self.pos) + str(self.has_key)
