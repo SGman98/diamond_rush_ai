@@ -1,12 +1,13 @@
 from queue import PriorityQueue
+from typing import Dict, List, Tuple
 
 LOGGING = True
 
-MEMO = {}
+MEMO: Dict[str, str] = {}
 
 
 class Cell:
-    def __init__(self, x, y, rows, cols):
+    def __init__(self, x: int, y: int, rows: int, cols: int):
         self.x = x
         self.y = y
 
@@ -36,7 +37,7 @@ class Cell:
         self.total_rows = rows
         self.total_cols = cols
 
-        self.neighbors = []
+        self.neighbors: List[Cell] = []
 
     def get_pos(self):
         return self.x, self.y
@@ -56,9 +57,6 @@ class Cell:
     def make_diamond(self):
         self.make_path()
         self.isdiamond = True
-
-    def make_exit(self):
-        self.isexit = True
 
     def make_closed_door(self):
         self.make_wall()
@@ -140,7 +138,7 @@ class Cell:
     def is_blocked(self):
         return not self.ispath
 
-    def update_neighbors(self, grid):
+    def update_neighbors(self, grid: List[List['Cell']]):
         self.neighbors = []
 
         if self.x < self.total_rows - 1:
@@ -199,47 +197,45 @@ class Cell:
         return f'Cell({self.x}, {self.y})'
 
 
-def path_to_movement(path):
-    movement = []
-    if path is None:
-        # print('No path found in path_to_movement')
+def path_to_movement(path: List[Cell]):
+    movement = ''
+    if len(path) == 0:
         return movement
     for i in range(len(path) - 1):
         x1, y1 = path[i].get_pos()
         x2, y2 = path[i + 1].get_pos()
 
         if x1 < x2:
-            movement.append('s')
+            movement += 's'
         elif x1 > x2:
-            movement.append('w')
+            movement += 'w'
         elif y1 < y2:
-            movement.append('d')
+            movement += 'd'
         elif y1 > y2:
-            movement.append('a')
+            movement += 'a'
 
     return movement
 
 
 class Board:
-    def __init__(self, board, new_board=False):
-        if new_board:
-            self.grid = self.create(board)
-        else:
-            self.grid = board
+    def __init__(self, board: list, new=False):
+
+        self.grid: List[List[Cell]] = self.create(board) if new else board
+
         self.width = len(board[0])
         self.height = len(board)
 
     def __repr__(self):
         return '.'.join([cell.to_string() for row in self.grid for cell in row])
 
-    def get_cell(self, pos):
+    def get_cell(self, pos: Tuple[int, int]):
         return self.grid[pos[0]][pos[1]]
 
     def get_total_diamonds(self):
         return sum([cell.isdiamond for row in self.grid for cell in row])
 
-    def create(self, board):
-        grid = []
+    def create(self, board: list):
+        grid: List[List[Cell]] = []
 
         for i, row in enumerate(board):
             grid.append([])
@@ -259,7 +255,7 @@ class Board:
         return grid
 
     def copy(self):
-        board_copy = []
+        board_copy: List[List[Cell]] = []
 
         for i, row in enumerate(self.grid):
             board_copy.append([])
@@ -273,8 +269,7 @@ class Board:
 
         return board_copy
 
-    def get_path(self, player, end):
-        start = player.pos
+    def get_path(self, player: 'Player', end: Tuple[int, int]):
         grid = self.copy()
         for i, row in enumerate(grid):
             for j, cell in enumerate(row):
@@ -287,14 +282,12 @@ class Board:
             for cell in row:
                 cell.update_neighbors(grid)
 
-        start = grid[start[0]][start[1]]
-        end = grid[end[0]][end[1]]
+        start_cell = grid[player.pos[0]][player.pos[1]]
+        end_cell = grid[end[0]][end[1]]
 
-        path = self.a_star(grid, start, end)
+        path = self.a_star(grid, start_cell, end_cell)
 
-        movement = path_to_movement(path)
-
-        return ''.join(movement)
+        return path_to_movement(path)
 
     def update_state(self, player):
         cell = self.get_cell(player.pos)
@@ -315,9 +308,9 @@ class Board:
             player.has_key = False
             return
 
-    def a_star(self, grid, start, end):
+    def a_star(self, grid: List[List[Cell]], start: Cell, end: Cell):
         # Manhattan distance
-        def h(p1, p2):
+        def h(p1: Tuple[int, int], p2: Tuple[int, int]):
             x1, y1 = p1
             x2, y2 = p2
 
@@ -325,10 +318,10 @@ class Board:
 
         count = 0
 
-        open_set = PriorityQueue()
+        open_set: PriorityQueue = PriorityQueue()
         open_set.put((0, count, start))
 
-        came_from = {}
+        came_from: Dict[Cell, Cell] = {}
 
         g_score = {cell: float('inf') for row in grid for cell in row}
         g_score[start] = 0
@@ -339,11 +332,11 @@ class Board:
         open_set_hash = {start}
 
         while not open_set.empty():
-            current = open_set.get()[2]
+            current: Cell = open_set.get()[2]
             open_set_hash.remove(current)
 
             if current == end:
-                path = []
+                path: List[Cell] = []
 
                 while current in came_from:
                     path.append(current)
@@ -371,11 +364,11 @@ class Board:
             if current != start:
                 current.make_closed()
 
-        return None
+        return []
 
 
 class Player:
-    def __init__(self, pos,  has_key, diamonds):
+    def __init__(self, pos: Tuple[int, int], has_key: bool, diamonds: int):
         self.pos = pos
         self.has_key = has_key
         self.diamonds = diamonds
@@ -383,9 +376,9 @@ class Player:
     def __repr__(self):
         return str(self.pos) + str(self.has_key)
 
-    def move(self, movement):
+    def move(self, movement: str):
         if movement == 'w':
-            self.pos = (self.pos[0]-1, self.pos[1])
+            self.pos = (self.pos[0] - 1, self.pos[1])
         elif movement == 'a':
             self.pos = (self.pos[0], self.pos[1]-1)
         elif movement == 's':
@@ -397,12 +390,12 @@ class Player:
 class Node:
     def __init__(
         self,
-        board,
-        start,
-        end,
-        has_key=False,
-        depth=0,
-        max_path_length=1000
+        board: List[List[Cell]],
+        start: Tuple[int, int],
+        end: Tuple[int, int],
+        has_key: bool = False,
+        depth: int = 0,
+        max_path_length: int = 1000,
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(start, has_key, self.board.get_total_diamonds())
@@ -414,13 +407,13 @@ class Node:
     def __repr__(self):
         return str(self.board) + str(self.player)
 
-    def print(self, message=''):
+    def print(self, message: str = ''):
         global LOGGING
         if not LOGGING:
             return
         print(">\t"*self.depth + message)
 
-    def move(self, path):
+    def move(self, path: str):
         self.movement = path
 
         for direction in self.movement:
@@ -428,7 +421,7 @@ class Node:
             self.board.update_state(self.player)
 
     def get_interest_points(self):
-        interest_points = []
+        interest_points: List[str] = []
 
         for i, row in enumerate(self.board.grid):
             for j, cell in enumerate(row):
@@ -447,7 +440,7 @@ class Node:
 
         interest_points.sort(key=lambda x: len(x))
 
-        interest_points_final = []
+        interest_points_final: List[str] = []
         for path in interest_points:
             for path2 in interest_points:
                 if path == path2:
