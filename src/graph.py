@@ -199,66 +199,6 @@ class Spot:
         return f'Spot({self.x}, {self.y})'
 
 
-def astar(grid, start, end):
-
-    # Manhattan distance
-    def h(p1, p2):
-        x1, y1 = p1
-        x2, y2 = p2
-
-        return abs(x1 - x2) + abs(y1 - y2)
-
-    count = 0
-
-    open_set = PriorityQueue()
-    open_set.put((0, count, start))
-
-    came_from = {}
-
-    g_score = {spot: float('inf') for row in grid for spot in row}
-    g_score[start] = 0
-
-    f_score = {spot: float('inf') for row in grid for spot in row}
-    f_score[start] = h(start.get_pos(), end.get_pos())
-
-    open_set_hash = {start}
-
-    while not open_set.empty():
-        current = open_set.get()[2]
-        open_set_hash.remove(current)
-
-        if current == end:
-            path = []
-
-            while current in came_from:
-                path.append(current)
-                current = came_from[current]
-
-            path.append(start)
-
-            return path[::-1]
-
-        for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
-
-            if temp_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + \
-                    h(neighbor.get_pos(), end.get_pos())
-
-                if neighbor not in open_set_hash:
-                    count += 1
-                    open_set.put((f_score[neighbor], count, neighbor))
-                    open_set_hash.add(neighbor)
-                    neighbor.make_open()
-
-        if current != start:
-            current.make_closed()
-
-    return None
-
-
 def path_to_movement(path):
     movement = []
     if path is None:
@@ -280,7 +220,181 @@ def path_to_movement(path):
     return movement
 
 
+class Board:
+    def __init__(self, board, new_board=False):
+        if new_board:
+            self.board = self.create(board)
+        else:
+            self.board = board
+        self.width = len(board[0])
+        self.height = len(board)
+
+    def __repr__(self):
+        return '.'.join([spot.to_string() for row in self.board for spot in row])
+
+    def get_spot(self, pos):
+        return self.board[pos[0]][pos[1]]
+
+    def get_total_diamonds(self):
+        return sum([spot.isdiamond for row in self.board for spot in row])
+
+    def create(self, board):
+        grid = []
+
+        for i, row in enumerate(board):
+            grid.append([])
+
+            for j, spot in enumerate(row):
+                state = spot
+                spot = Spot(i, j, len(board), len(row))
+
+                spot.make_state(state)
+
+                grid[i].append(spot)
+
+        for row in grid:
+            for spot in row:
+                spot.update_neighbors(grid)
+
+        return grid
+
+    def copy(self):
+        board_copy = []
+
+        for i, row in enumerate(self.board):
+            board_copy.append([])
+
+            for j, spot in enumerate(row):
+                board_copy[i].append(spot.copy())
+
+        for row in board_copy:
+            for spot in row:
+                spot.update_neighbors(board_copy)
+
+        return board_copy
+
+    def get_path(self, player, end):
+        start = player.pos
+        grid = self.copy()
+        for i, row in enumerate(grid):
+            for j, spot in enumerate(row):
+                if spot.isgate and player.has_key and end == (i, j):
+                    spot.make_path()
+                if spot.isexit and player.diamonds == 0 and end == (i, j):
+                    spot.make_path()
+
+        for row in grid:
+            for spot in row:
+                spot.update_neighbors(grid)
+
+        start = grid[start[0]][start[1]]
+        end = grid[end[0]][end[1]]
+
+        path = self.a_star(grid, start, end)
+
+        movement = path_to_movement(path)
+
+        return ''.join(movement)
+
+    def update_state(self, player):
+        spot = self.get_spot(player.pos)
+        if spot.iskey and not player.has_key:
+            player.has_key = True
+            spot.iskey = False
+            return
+        if spot.isdiamond:
+            player.diamonds -= 1
+            spot.isdiamond = False
+            return
+        if spot.isspike:
+            spot.make_wall()
+            return
+        if spot.isgate and player.has_key:
+            spot.make_path()
+            spot.isgate = False
+            player.has_key = False
+            return
+
+    def a_star(self, grid, start, end):
+        # Manhattan distance
+        def h(p1, p2):
+            x1, y1 = p1
+            x2, y2 = p2
+
+            return abs(x1 - x2) + abs(y1 - y2)
+
+        count = 0
+
+        open_set = PriorityQueue()
+        open_set.put((0, count, start))
+
+        came_from = {}
+
+        g_score = {spot: float('inf') for row in grid for spot in row}
+        g_score[start] = 0
+
+        f_score = {spot: float('inf') for row in grid for spot in row}
+        f_score[start] = h(start.get_pos(), end.get_pos())
+
+        open_set_hash = {start}
+
+        while not open_set.empty():
+            current = open_set.get()[2]
+            open_set_hash.remove(current)
+
+            if current == end:
+                path = []
+
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+
+                path.append(start)
+
+                return path[::-1]
+
+            for neighbor in current.neighbors:
+                temp_g_score = g_score[current] + 1
+
+                if temp_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = temp_g_score
+                    f_score[neighbor] = temp_g_score + \
+                        h(neighbor.get_pos(), end.get_pos())
+
+                    if neighbor not in open_set_hash:
+                        count += 1
+                        open_set.put((f_score[neighbor], count, neighbor))
+                        open_set_hash.add(neighbor)
+                        neighbor.make_open()
+
+            if current != start:
+                current.make_closed()
+
+        return None
+
+
 class Player:
+    def __init__(self, pos,  has_key, diamonds):
+        self.pos = pos
+        self.has_key = has_key
+        self.diamonds = diamonds
+
+    def __repr__(self):
+        return str(self.pos) + str(self.has_key)
+
+    def move(self, movement):
+        if movement == 'w':
+            self.pos = (self.pos[0]-1, self.pos[1])
+        elif movement == 'a':
+            self.pos = (self.pos[0], self.pos[1]-1)
+        elif movement == 's':
+            self.pos = (self.pos[0]+1, self.pos[1])
+        elif movement == 'd':
+            self.pos = (self.pos[0], self.pos[1]+1)
+
+
+class AI_Graph:
     def __init__(
         self,
         board,
@@ -290,41 +404,42 @@ class Player:
         depth=0,
         max_path_length=1000
     ):
-        if depth != 0:
-            self.board = board
-        else:
-            self.board = self.create_board(board)
-        self.pos = start
+        self.board = Board(board, depth == 0)
+        self.player = Player(start, has_key, self.board.get_total_diamonds())
         self.end = end
         self.depth = depth
         self.max_path_length = max_path_length
-        self.has_key = has_key
-        self.diamonds = self.get_total_diamonds()
         self.movement = ''
 
-    def get_total_diamonds(self):
-        total_diamonds = 0
+    def __repr__(self):
+        return str(self.board) + str(self.player)
 
-        for row in self.board:
-            for spot in row:
-                if spot.isdiamond:
-                    total_diamonds += 1
+    def print(self, message=''):
+        global LOGGING
+        if not LOGGING:
+            return
+        print(">\t"*self.depth + message)
 
-        return total_diamonds
+    def move(self, path):
+        self.movement = path
+
+        for direction in self.movement:
+            self.player.move(direction)
+            self.board.update_state(self.player)
 
     def get_interest_points(self):
         interest_points = []
 
-        for i, row in enumerate(self.board):
+        for i, row in enumerate(self.board.board):
             for j, spot in enumerate(row):
-                path = self.get_path((i, j))
+                path = self.board.get_path(self.player, (i, j))
 
                 if path == '':
                     continue
 
-                is_exit = self.diamonds == 0 and spot.isexit
-                is_key = not self.has_key and spot.iskey
-                is_gate = self.has_key and spot.isgate
+                is_exit = self.player.diamonds == 0 and spot.isexit
+                is_key = not self.player.has_key and spot.iskey
+                is_gate = self.player.has_key and spot.isgate
                 is_diamond = spot.isdiamond
 
                 if is_exit or is_key or is_gate or is_diamond:
@@ -347,116 +462,10 @@ class Player:
 
         return list(filter(shorter_than_max, interest_points_final))
 
-    def get_path(self, end):
-        grid = self.get_board_copy()
-        for i, row in enumerate(grid):
-            for j, spot in enumerate(row):
-                if spot.isgate and self.has_key and end == (i, j):
-                    spot.make_path()
-                if spot.isexit and self.diamonds == 0 and end == (i, j):
-                    spot.make_path()
-
-        for row in grid:
-            for spot in row:
-                spot.update_neighbors(grid)
-
-        # get path
-        start = grid[self.pos[0]][self.pos[1]]
-        end = grid[end[0]][end[1]]
-
-        path = astar(grid, start, end)
-
-        # transform path to movement W, A, S, D
-        movement = path_to_movement(path)
-
-        return ''.join(movement)
-
-    def create_board(self, board):
-        grid = []
-
-        for i, row in enumerate(board):
-            grid.append([])
-
-            for j, spot in enumerate(row):
-                state = spot
-                spot = Spot(i, j, len(board), len(row))
-
-                spot.make_state(state)
-
-                grid[i].append(spot)
-
-        for row in grid:
-            for spot in row:
-                spot.update_neighbors(grid)
-
-        return grid
-
-    def get_board_copy(self):
-        board_copy = []
-
-        for i, row in enumerate(self.board):
-            board_copy.append([])
-
-            for j, spot in enumerate(row):
-                board_copy[i].append(spot.copy())
-
-        for row in board_copy:
-            for spot in row:
-                spot.update_neighbors(board_copy)
-
-        return board_copy
-
-    def move(self, path):
-        self.movement = path
-
-        def move_player(direction):
-            if direction == 'w':
-                self.pos = (self.pos[0] - 1, self.pos[1])
-            elif direction == 's':
-                self.pos = (self.pos[0] + 1, self.pos[1])
-            elif direction == 'a':
-                self.pos = (self.pos[0], self.pos[1] - 1)
-            elif direction == 'd':
-                self.pos = (self.pos[0], self.pos[1] + 1)
-
-        for direction in self.movement:
-            move_player(direction)
-            self.update_state()
-
-    def update_state(self):
-        spot = self.board[self.pos[0]][self.pos[1]]
-        if spot.iskey and not self.has_key:
-            self.has_key = True
-            spot.iskey = False
-            return
-        if spot.isdiamond:
-            self.diamonds -= 1
-            spot.isdiamond = False
-            return
-        if spot.isspike:
-            spot.make_wall()
-            return
-        if spot.isgate and self.has_key:
-            spot.make_path()
-            spot.isgate = False
-            self.has_key = False
-            return
-        if spot.isgate:
-            print("wtf")
-
-    def print(self, message=''):
-        global LOGGING
-        if not LOGGING:
-            return
-        print(">\t"*self.depth + message)
-
-    def board_to_string(self):
-        return '.'.join([spot.to_string() for row in self.board for spot in row])
-
     def solve(self):
         global LOGGING
 
-        if self.pos == self.end:
+        if self.player.pos == self.end:
             self.print("Reached end")
             return True
 
@@ -479,27 +488,27 @@ class Player:
 
         for path in interest_points:
 
-            new_player = Player(
-                self.get_board_copy(),
-                self.pos,
+            new_node = AI_Graph(
+                self.board.copy(),
+                self.player.pos,
                 self.end,
-                self.has_key,
+                self.player.has_key,
                 self.depth+1,
                 self.max_path_length - len(path)
             )
 
-            new_player.move(path)
-            new_player.print(f"Moved to {new_player.pos} with path {path}")
+            new_node.move(path)
+            new_node.print(f"Moved to {new_node.player.pos} with path {path}")
 
-            if new_player.solve():
-                if len(result) == 0 or len(new_player.movement) < len(result):
-                    result = new_player.movement
+            if new_node.solve():
+                if len(result) == 0 or len(new_node.movement) < len(result):
+                    result = new_node.movement
                     self.max_path_length = min(
                         self.max_path_length, len(result))
                     self.print(f"New best path: {result}")
                     break  # comment this line to find the optimal path
                 else:
-                    self.print(f"Same or worse path: {new_player.movement}")
+                    self.print(f"Same or worse path: {new_node.movement}")
 
         MEMO[memo_key] = result
 
@@ -511,6 +520,3 @@ class Player:
 
         self.print("Player failed to reach the end")
         return False
-
-    def __repr__(self):
-        return self.board_to_string() + str(self.pos) + str(self.has_key)
