@@ -5,7 +5,7 @@ LOGGING = True
 MEMO = {}
 
 
-class Spot:
+class Cell:
     def __init__(self, x, y, rows, cols):
         self.x = x
         self.y = y
@@ -20,7 +20,7 @@ class Spot:
         self.isdoor = False
         self.isgate = False
 
-        # interactive spots
+        # interactive cells
         self.isbutton = False
         self.isspike = False
         self.isrock = False
@@ -29,7 +29,7 @@ class Spot:
         self.ishole = False
         self.islava = False
 
-        self.ispath = False  # whether the spot is a path or wall
+        self.ispath = False  # whether the cell is a path or wall
 
         self.isexit = False
 
@@ -176,27 +176,27 @@ class Spot:
         return str
 
     def copy(self):
-        spot = Spot(self.x, self.y, self.total_rows, self.total_cols)
-        spot.closed = self.closed
-        spot.isdiamond = self.isdiamond
-        spot.iskey = self.iskey
-        spot.isdoor = self.isdoor
-        spot.isgate = self.isgate
-        spot.isbutton = self.isbutton
-        spot.isspike = self.isspike
-        spot.isrock = self.isrock
-        spot.ishole = self.ishole
-        spot.islava = self.islava
-        spot.ispath = self.ispath
-        spot.isexit = self.isexit
-        return spot
+        cell = Cell(self.x, self.y, self.total_rows, self.total_cols)
+        cell.closed = self.closed
+        cell.isdiamond = self.isdiamond
+        cell.iskey = self.iskey
+        cell.isdoor = self.isdoor
+        cell.isgate = self.isgate
+        cell.isbutton = self.isbutton
+        cell.isspike = self.isspike
+        cell.isrock = self.isrock
+        cell.ishole = self.ishole
+        cell.islava = self.islava
+        cell.ispath = self.ispath
+        cell.isexit = self.isexit
+        return cell
 
     def __lt__(self, _):
         return False
 
     # printable representation of the object
     def __repr__(self):
-        return f'Spot({self.x}, {self.y})'
+        return f'Cell({self.x}, {self.y})'
 
 
 def path_to_movement(path):
@@ -223,20 +223,20 @@ def path_to_movement(path):
 class Board:
     def __init__(self, board, new_board=False):
         if new_board:
-            self.board = self.create(board)
+            self.grid = self.create(board)
         else:
-            self.board = board
+            self.grid = board
         self.width = len(board[0])
         self.height = len(board)
 
     def __repr__(self):
-        return '.'.join([spot.to_string() for row in self.board for spot in row])
+        return '.'.join([cell.to_string() for row in self.grid for cell in row])
 
-    def get_spot(self, pos):
-        return self.board[pos[0]][pos[1]]
+    def get_cell(self, pos):
+        return self.grid[pos[0]][pos[1]]
 
     def get_total_diamonds(self):
-        return sum([spot.isdiamond for row in self.board for spot in row])
+        return sum([cell.isdiamond for row in self.grid for cell in row])
 
     def create(self, board):
         grid = []
@@ -244,32 +244,32 @@ class Board:
         for i, row in enumerate(board):
             grid.append([])
 
-            for j, spot in enumerate(row):
-                state = spot
-                spot = Spot(i, j, len(board), len(row))
+            for j, cell in enumerate(row):
+                state = cell
+                cell = Cell(i, j, len(board), len(row))
 
-                spot.make_state(state)
+                cell.make_state(state)
 
-                grid[i].append(spot)
+                grid[i].append(cell)
 
         for row in grid:
-            for spot in row:
-                spot.update_neighbors(grid)
+            for cell in row:
+                cell.update_neighbors(grid)
 
         return grid
 
     def copy(self):
         board_copy = []
 
-        for i, row in enumerate(self.board):
+        for i, row in enumerate(self.grid):
             board_copy.append([])
 
-            for j, spot in enumerate(row):
-                board_copy[i].append(spot.copy())
+            for j, cell in enumerate(row):
+                board_copy[i].append(cell.copy())
 
         for row in board_copy:
-            for spot in row:
-                spot.update_neighbors(board_copy)
+            for cell in row:
+                cell.update_neighbors(board_copy)
 
         return board_copy
 
@@ -277,15 +277,15 @@ class Board:
         start = player.pos
         grid = self.copy()
         for i, row in enumerate(grid):
-            for j, spot in enumerate(row):
-                if spot.isgate and player.has_key and end == (i, j):
-                    spot.make_path()
-                if spot.isexit and player.diamonds == 0 and end == (i, j):
-                    spot.make_path()
+            for j, cell in enumerate(row):
+                if cell.isgate and player.has_key and end == (i, j):
+                    cell.make_path()
+                if cell.isexit and player.diamonds == 0 and end == (i, j):
+                    cell.make_path()
 
         for row in grid:
-            for spot in row:
-                spot.update_neighbors(grid)
+            for cell in row:
+                cell.update_neighbors(grid)
 
         start = grid[start[0]][start[1]]
         end = grid[end[0]][end[1]]
@@ -297,21 +297,21 @@ class Board:
         return ''.join(movement)
 
     def update_state(self, player):
-        spot = self.get_spot(player.pos)
-        if spot.iskey and not player.has_key:
+        cell = self.get_cell(player.pos)
+        if cell.iskey and not player.has_key:
             player.has_key = True
-            spot.iskey = False
+            cell.iskey = False
             return
-        if spot.isdiamond:
+        if cell.isdiamond:
             player.diamonds -= 1
-            spot.isdiamond = False
+            cell.isdiamond = False
             return
-        if spot.isspike:
-            spot.make_wall()
+        if cell.isspike:
+            cell.make_wall()
             return
-        if spot.isgate and player.has_key:
-            spot.make_path()
-            spot.isgate = False
+        if cell.isgate and player.has_key:
+            cell.make_path()
+            cell.isgate = False
             player.has_key = False
             return
 
@@ -330,10 +330,10 @@ class Board:
 
         came_from = {}
 
-        g_score = {spot: float('inf') for row in grid for spot in row}
+        g_score = {cell: float('inf') for row in grid for cell in row}
         g_score[start] = 0
 
-        f_score = {spot: float('inf') for row in grid for spot in row}
+        f_score = {cell: float('inf') for row in grid for cell in row}
         f_score[start] = h(start.get_pos(), end.get_pos())
 
         open_set_hash = {start}
@@ -394,7 +394,7 @@ class Player:
             self.pos = (self.pos[0], self.pos[1]+1)
 
 
-class AI_Graph:
+class Node:
     def __init__(
         self,
         board,
@@ -430,17 +430,17 @@ class AI_Graph:
     def get_interest_points(self):
         interest_points = []
 
-        for i, row in enumerate(self.board.board):
-            for j, spot in enumerate(row):
+        for i, row in enumerate(self.board.grid):
+            for j, cell in enumerate(row):
                 path = self.board.get_path(self.player, (i, j))
 
                 if path == '':
                     continue
 
-                is_exit = self.player.diamonds == 0 and spot.isexit
-                is_key = not self.player.has_key and spot.iskey
-                is_gate = self.player.has_key and spot.isgate
-                is_diamond = spot.isdiamond
+                is_exit = self.player.diamonds == 0 and cell.isexit
+                is_key = not self.player.has_key and cell.iskey
+                is_gate = self.player.has_key and cell.isgate
+                is_diamond = cell.isdiamond
 
                 if is_exit or is_key or is_gate or is_diamond:
                     interest_points.append(path)
@@ -488,7 +488,7 @@ class AI_Graph:
 
         for path in interest_points:
 
-            new_node = AI_Graph(
+            new_node = Node(
                 self.board.copy(),
                 self.player.pos,
                 self.end,

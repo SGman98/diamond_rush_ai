@@ -29,7 +29,7 @@ def get_movement_from_array(arr):
                 end = (row, col)
 
     # movement = graph.get_path(arr, start, end)
-    player = graph.AI_Graph(arr, start, end)
+    player = graph.Node(arr, start, end)
 
     # solve
     result = player.solve()
