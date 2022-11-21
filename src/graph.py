@@ -112,33 +112,32 @@ class Cell:
 
     def make_state(self, value):
         transform = {
-            'W': self.make_wall,
-            'P': self.make_path,
-            'D': self.make_diamond,
-            'C': self.make_closed_door,
-            'O': self.make_open_door,
-            'H': self.make_hole,
-            'K': self.make_key,
-            'L': self.make_lava,
-            'G': self.make_closed_gate,
-            'B': self.make_button,
-            'S': self.make_spike,
-            'R': self.make_rock,
-
-            'E': self.make_exit,
-            '#': self.make_path,
+            "W": self.make_wall,
+            "P": self.make_path,
+            "D": self.make_diamond,
+            "C": self.make_closed_door,
+            "O": self.make_open_door,
+            "H": self.make_hole,
+            "K": self.make_key,
+            "L": self.make_lava,
+            "G": self.make_closed_gate,
+            "B": self.make_button,
+            "S": self.make_spike,
+            "R": self.make_rock,
+            "E": self.make_exit,
+            "#": self.make_path,
         }
 
-        if (value in transform):
+        if value in transform:
             transform[value]()
         else:
-            print(f'Using default state for {value}')
+            print(f"Using default state for {value}")
             self.make_path()
 
     def is_blocked(self):
         return not self.ispath
 
-    def update_neighbors(self, grid: List[List['Cell']]):
+    def update_neighbors(self, grid: List[List["Cell"]]):
         self.neighbors = []
 
         if self.x < self.total_rows - 1:
@@ -158,18 +157,18 @@ class Cell:
                 self.neighbors.append(grid[self.x][self.y - 1])
 
     def to_string(self):
-        str = ''
-        str += '1' if self.ispath else '0'
-        str += '1' if self.isdiamond else '0'
-        str += '1' if self.iskey else '0'
-        str += '1' if self.isdoor else '0'
-        str += '1' if self.isgate else '0'
-        str += '1' if self.isbutton else '0'
-        str += '1' if self.isspike else '0'
-        str += '1' if self.isrock else '0'
-        str += '1' if self.ishole else '0'
-        str += '1' if self.islava else '0'
-        str += '1' if self.isexit else '0'
+        str = ""
+        str += "1" if self.ispath else "0"
+        str += "1" if self.isdiamond else "0"
+        str += "1" if self.iskey else "0"
+        str += "1" if self.isdoor else "0"
+        str += "1" if self.isgate else "0"
+        str += "1" if self.isbutton else "0"
+        str += "1" if self.isspike else "0"
+        str += "1" if self.isrock else "0"
+        str += "1" if self.ishole else "0"
+        str += "1" if self.islava else "0"
+        str += "1" if self.isexit else "0"
 
         return str
 
@@ -194,11 +193,11 @@ class Cell:
 
     # printable representation of the object
     def __repr__(self):
-        return f'Cell({self.x}, {self.y})'
+        return f"Cell({self.x}, {self.y})"
 
 
 def path_to_movement(path: List[Cell]):
-    movement = ''
+    movement = ""
     if len(path) == 0:
         return movement
     for i in range(len(path) - 1):
@@ -206,13 +205,13 @@ def path_to_movement(path: List[Cell]):
         x2, y2 = path[i + 1].get_pos()
 
         if x1 < x2:
-            movement += 's'
+            movement += "s"
         elif x1 > x2:
-            movement += 'w'
+            movement += "w"
         elif y1 < y2:
-            movement += 'd'
+            movement += "d"
         elif y1 > y2:
-            movement += 'a'
+            movement += "a"
 
     return movement
 
@@ -226,7 +225,7 @@ class Board:
         self.height = len(board)
 
     def __repr__(self):
-        return '.'.join([cell.to_string() for row in self.grid for cell in row])
+        return ".".join([cell.to_string() for row in self.grid for cell in row])
 
     def get_cell(self, pos: Tuple[int, int]):
         return self.grid[pos[0]][pos[1]]
@@ -269,7 +268,7 @@ class Board:
 
         return board_copy
 
-    def get_path(self, player: 'Player', end: Tuple[int, int]):
+    def get_path(self, player: "Player", end: Tuple[int, int]):
         grid = self.copy()
         for i, row in enumerate(grid):
             for j, cell in enumerate(row):
@@ -323,10 +322,10 @@ class Board:
 
         came_from: Dict[Cell, Cell] = {}
 
-        g_score = {cell: float('inf') for row in grid for cell in row}
+        g_score = {cell: float("inf") for row in grid for cell in row}
         g_score[start] = 0
 
-        f_score = {cell: float('inf') for row in grid for cell in row}
+        f_score = {cell: float("inf") for row in grid for cell in row}
         f_score[start] = h(start.get_pos(), end.get_pos())
 
         open_set_hash = {start}
@@ -352,8 +351,9 @@ class Board:
                 if temp_g_score < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = temp_g_score
-                    f_score[neighbor] = temp_g_score + \
-                        h(neighbor.get_pos(), end.get_pos())
+                    f_score[neighbor] = temp_g_score + h(
+                        neighbor.get_pos(), end.get_pos()
+                    )
 
                     if neighbor not in open_set_hash:
                         count += 1
@@ -377,14 +377,14 @@ class Player:
         return str(self.pos) + str(self.has_key)
 
     def move(self, movement: str):
-        if movement == 'w':
+        if movement == "w":
             self.pos = (self.pos[0] - 1, self.pos[1])
-        elif movement == 'a':
-            self.pos = (self.pos[0], self.pos[1]-1)
-        elif movement == 's':
-            self.pos = (self.pos[0]+1, self.pos[1])
-        elif movement == 'd':
-            self.pos = (self.pos[0], self.pos[1]+1)
+        elif movement == "a":
+            self.pos = (self.pos[0], self.pos[1] - 1)
+        elif movement == "s":
+            self.pos = (self.pos[0] + 1, self.pos[1])
+        elif movement == "d":
+            self.pos = (self.pos[0], self.pos[1] + 1)
 
 
 class Node:
@@ -402,16 +402,16 @@ class Node:
         self.end = end
         self.depth = depth
         self.max_path_length = max_path_length
-        self.movement = ''
+        self.movement = ""
 
     def __repr__(self):
         return str(self.board) + str(self.player)
 
-    def print(self, message: str = ''):
+    def print(self, message: str = ""):
         global LOGGING
         if not LOGGING:
             return
-        print(">\t"*self.depth + message)
+        print(">\t" * self.depth + message)
 
     def move(self, path: str):
         self.movement = path
@@ -427,7 +427,7 @@ class Node:
             for j, cell in enumerate(row):
                 path = self.board.get_path(self.player, (i, j))
 
-                if path == '':
+                if path == "":
                     continue
 
                 is_exit = self.player.diamonds == 0 and cell.isexit
@@ -451,7 +451,8 @@ class Node:
             else:
                 interest_points_final.append(path)
 
-        def shorter_than_max(x): return len(x) <= self.max_path_length
+        def shorter_than_max(x):
+            return len(x) <= self.max_path_length
 
         return list(filter(shorter_than_max, interest_points_final))
 
@@ -467,7 +468,7 @@ class Node:
         if memo_key in MEMO:
             movement = MEMO[memo_key]
 
-            if movement == '':
+            if movement == "":
                 self.print("Player failed to reach the end (memo)")
                 return False
 
@@ -475,7 +476,7 @@ class Node:
             self.movement += movement
             return True
 
-        result = ''
+        result = ""
 
         interest_points = self.get_interest_points()
 
@@ -486,8 +487,8 @@ class Node:
                 self.player.pos,
                 self.end,
                 self.player.has_key,
-                self.depth+1,
-                self.max_path_length - len(path)
+                self.depth + 1,
+                self.max_path_length - len(path),
             )
 
             new_node.move(path)
@@ -496,8 +497,7 @@ class Node:
             if new_node.solve():
                 if len(result) == 0 or len(new_node.movement) < len(result):
                     result = new_node.movement
-                    self.max_path_length = min(
-                        self.max_path_length, len(result))
+                    self.max_path_length = min(self.max_path_length, len(result))
                     self.print(f"New best path: {result}")
                     break  # comment this line to find the optimal path
                 else:
@@ -505,7 +505,7 @@ class Node:
 
         MEMO[memo_key] = result
 
-        if result != '':
+        if result != "":
             self.movement += result
             if self.depth == 0:
                 print(f"Final path: {self.movement}")

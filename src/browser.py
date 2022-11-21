@@ -17,7 +17,7 @@ class Browser:
             "a": Keys.ARROW_LEFT,
             "d": Keys.ARROW_RIGHT,
             "w": Keys.ARROW_UP,
-            "s": Keys.ARROW_DOWN
+            "s": Keys.ARROW_DOWN,
         }
 
     def close(self):

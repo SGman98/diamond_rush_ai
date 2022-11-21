@@ -12,7 +12,7 @@ def get_image(name):
 
 
 def show_image(image):
-    cv.imshow('image', image)
+    cv.imshow("image", image)
     cv.waitKey(0)
     cv.destroyAllWindows()
 
@@ -22,9 +22,9 @@ def crop_img(image, cols, rows, top=0, bottom=0, left=0, right=0):
     tile_width = width / cols
     tile_height = height / rows
     # remove top and bottom
-    image = image[int(top * tile_height):int((rows - bottom) * tile_height), :]
+    image = image[int(top * tile_height) : int((rows - bottom) * tile_height), :]
     # remove left and right
-    image = image[:, int(left * tile_width):int((cols - right) * tile_width)]
+    image = image[:, int(left * tile_width) : int((cols - right) * tile_width)]
 
     return image
 
@@ -36,8 +36,10 @@ def get_tiles(image, cols, rows):
     tiles = []
     for i in range(rows):
         for j in range(cols):
-            tile = image[int(i * tile_height):int((i + 1) * tile_height),
-                         int(j * tile_width):int((j + 1) * tile_width)]
+            tile = image[
+                int(i * tile_height) : int((i + 1) * tile_height),
+                int(j * tile_width) : int((j + 1) * tile_width),
+            ]
             tile = cv.resize(tile, (64, 64))
             tiles.append(tile)
     return tiles
@@ -102,43 +104,43 @@ def board_to_processable_array(board):
         new_row = []
         for tile in row:
             if tile in range(0, 7):
-                new_row.append('W')
+                new_row.append("W")
             elif tile in range(7, 16):
-                new_row.append('P')
+                new_row.append("P")
             elif tile == 16:
-                new_row.append('D')
+                new_row.append("D")
             elif tile in range(17, 19):
-                new_row.append('E')
+                new_row.append("E")
             elif tile == 19:
-                new_row.append('C')
+                new_row.append("C")
             elif tile == 20:
-                new_row.append('O')
+                new_row.append("O")
             elif tile == 21:
-                new_row.append('H')
+                new_row.append("H")
             elif tile == 22:
-                new_row.append('P')
+                new_row.append("P")
             elif tile in range(23, 25):
-                new_row.append('K')
+                new_row.append("K")
             elif tile in range(25, 34):
-                new_row.append('L')
+                new_row.append("L")
             elif tile == 34:
-                new_row.append('G')
+                new_row.append("G")
             elif tile in range(35, 55):
-                new_row.append('W')
+                new_row.append("W")
             elif tile == 55:  # Set to 'P' because is failling
-                new_row.append('P')
+                new_row.append("P")
             elif tile in range(55, 57):
-                new_row.append('B')
+                new_row.append("B")
             elif tile == 57:
-                new_row.append('W')
+                new_row.append("W")
             elif tile == 58:
-                new_row.append('S')
+                new_row.append("S")
             elif tile == 59:
-                new_row.append('R')
+                new_row.append("R")
             elif tile == 60:
-                new_row.append('#')
+                new_row.append("#")
             elif tile == 61:
-                new_row.append('E')
+                new_row.append("E")
 
         result.append(new_row)
     return np.array(result)
@@ -154,20 +156,20 @@ def recreate_board(types, cols, rows):
     types = types.flatten()
 
     resolve = {
-        'W': 0,
-        'P': 7,
-        'D': 16,
-        'E': 17,
-        'C': 19,
-        'O': 20,
-        'H': 21,
-        'K': 23,
-        'L': 25,
-        'G': 34,
-        'B': 56,
-        'S': 58,
-        'R': 59,
-        '#': 60
+        "W": 0,
+        "P": 7,
+        "D": 16,
+        "E": 17,
+        "C": 19,
+        "O": 20,
+        "H": 21,
+        "K": 23,
+        "L": 25,
+        "G": 34,
+        "B": 56,
+        "S": 58,
+        "R": 59,
+        "#": 60,
     }
 
     # replace tiles
@@ -175,8 +177,10 @@ def recreate_board(types, cols, rows):
         index = resolve.get(type, 0)
         x = i % cols
         y = i // cols
-        result[y * tile_height:(y + 1) * tile_height,
-               x * tile_width:(x + 1) * tile_width] = tiles[index]
+        result[
+            y * tile_height : (y + 1) * tile_height,
+            x * tile_width : (x + 1) * tile_width,
+        ] = tiles[index]
 
     return result
 
