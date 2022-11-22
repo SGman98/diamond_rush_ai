@@ -1,7 +1,13 @@
-from queue import PriorityQueue
 from typing import Dict, List, Tuple
 
+from utils import *
+
 LOGGING = True
+
+UP = "w"
+DOWN = "s"
+LEFT = "a"
+RIGHT = "d"
 
 MEMO: Dict[str, str] = {}
 
@@ -196,26 +202,6 @@ class Cell:
         return f"Cell({self.x}, {self.y})"
 
 
-def path_to_movement(path: List[Cell]):
-    movement = ""
-    if len(path) == 0:
-        return movement
-    for i in range(len(path) - 1):
-        x1, y1 = path[i].get_pos()
-        x2, y2 = path[i + 1].get_pos()
-
-        if x1 < x2:
-            movement += "s"
-        elif x1 > x2:
-            movement += "w"
-        elif y1 < y2:
-            movement += "d"
-        elif y1 > y2:
-            movement += "a"
-
-    return movement
-
-
 class Board:
     def __init__(self, board: list, new=False):
 
@@ -254,13 +240,7 @@ class Board:
         return grid
 
     def copy(self):
-        board_copy: List[List[Cell]] = []
-
-        for i, row in enumerate(self.grid):
-            board_copy.append([])
-
-            for j, cell in enumerate(row):
-                board_copy[i].append(cell.copy())
+        board_copy = [[cell.copy() for cell in row] for row in self.grid]
 
         for row in board_copy:
             for cell in row:
@@ -284,9 +264,7 @@ class Board:
         start_cell = grid[player.pos[0]][player.pos[1]]
         end_cell = grid[end[0]][end[1]]
 
-        path = self.a_star(grid, start_cell, end_cell)
-
-        return path_to_movement(path)
+        return a_star(grid, start_cell, end_cell)
 
     def update_state(self, player):
         cell = self.get_cell(player.pos)
@@ -307,65 +285,6 @@ class Board:
             player.has_key = False
             return
 
-    def a_star(self, grid: List[List[Cell]], start: Cell, end: Cell):
-        # Manhattan distance
-        def h(p1: Tuple[int, int], p2: Tuple[int, int]):
-            x1, y1 = p1
-            x2, y2 = p2
-
-            return abs(x1 - x2) + abs(y1 - y2)
-
-        count = 0
-
-        open_set: PriorityQueue = PriorityQueue()
-        open_set.put((0, count, start))
-
-        came_from: Dict[Cell, Cell] = {}
-
-        g_score = {cell: float("inf") for row in grid for cell in row}
-        g_score[start] = 0
-
-        f_score = {cell: float("inf") for row in grid for cell in row}
-        f_score[start] = h(start.get_pos(), end.get_pos())
-
-        open_set_hash = {start}
-
-        while not open_set.empty():
-            current: Cell = open_set.get()[2]
-            open_set_hash.remove(current)
-
-            if current == end:
-                path: List[Cell] = []
-
-                while current in came_from:
-                    path.append(current)
-                    current = came_from[current]
-
-                path.append(start)
-
-                return path[::-1]
-
-            for neighbor in current.neighbors:
-                temp_g_score = g_score[current] + 1
-
-                if temp_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = temp_g_score
-                    f_score[neighbor] = temp_g_score + h(
-                        neighbor.get_pos(), end.get_pos()
-                    )
-
-                    if neighbor not in open_set_hash:
-                        count += 1
-                        open_set.put((f_score[neighbor], count, neighbor))
-                        open_set_hash.add(neighbor)
-                        neighbor.make_open()
-
-            if current != start:
-                current.make_closed()
-
-        return []
-
 
 class Player:
     def __init__(self, pos: Tuple[int, int], has_key: bool, diamonds: int):
@@ -377,14 +296,12 @@ class Player:
         return str(self.pos) + str(self.has_key)
 
     def move(self, movement: str):
-        if movement == "w":
-            self.pos = (self.pos[0] - 1, self.pos[1])
-        elif movement == "a":
-            self.pos = (self.pos[0], self.pos[1] - 1)
-        elif movement == "s":
-            self.pos = (self.pos[0] + 1, self.pos[1])
-        elif movement == "d":
-            self.pos = (self.pos[0], self.pos[1] + 1)
+        MOVEMENTS = {UP: (-1, 0), DOWN: (1, 0), LEFT: (0, -1), RIGHT: (0, 1)}
+
+        self.pos = (
+            self.pos[0] + MOVEMENTS[movement][0],
+            self.pos[1] + MOVEMENTS[movement][1],
+        )
 
 
 class Node:

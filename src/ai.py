@@ -25,6 +25,11 @@ def get_movement_from_array(arr):
                 end = (row, col)
 
     # movement = graph.get_path(arr, start, end)
+
+    if start is None or end is None:
+        print("No start or end found")
+        return ""
+
     player = graph.Node(arr, start, end)
 
     # solve
