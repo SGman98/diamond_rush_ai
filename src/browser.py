@@ -3,6 +3,7 @@ import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from utils import UP, DOWN, LEFT, RIGHT
 
 
 class Browser:
@@ -14,10 +15,10 @@ class Browser:
         self.driver.switch_to.frame(iframe)
 
         self.map_moves = {
-            "a": Keys.ARROW_LEFT,
-            "d": Keys.ARROW_RIGHT,
-            "w": Keys.ARROW_UP,
-            "s": Keys.ARROW_DOWN,
+            UP: Keys.ARROW_UP,
+            DOWN: Keys.ARROW_DOWN,
+            LEFT: Keys.ARROW_LEFT,
+            RIGHT: Keys.ARROW_RIGHT,
         }
 
     def close(self):

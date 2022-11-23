@@ -1,13 +1,9 @@
 from typing import Dict, List, Tuple
 
-from utils import *
+from utils import UP, DOWN, LEFT, RIGHT, a_star
 
 LOGGING = True
 
-UP = "w"
-DOWN = "s"
-LEFT = "a"
-RIGHT = "d"
 
 MEMO: Dict[str, str] = {}
 MEMO2: Dict[str, bool] = {}
