@@ -430,7 +430,7 @@ class Node:
         def shorter_than_max(x):
             result = len("".join(x)) <= self.max_path_length
             if not result:
-                print("" + f"Path {x} is too long" + "")
+                print("\033[33m" + f"Path {x} is too long" + "\033[0m")
             return result
 
         return list(filter(shorter_than_max, interest_points_final))
@@ -439,7 +439,7 @@ class Node:
         global LOGGING
 
         if self.player.pos == self.end:
-            self.print("Reached end")
+            self.print("\033[32mReached end\033[0m")
 
             return True
 
@@ -449,15 +449,15 @@ class Node:
             movement = MEMO[memo_key]
 
             if movement == "":
-                self.print("Player failed to reach the end (memo)")
+                self.print("\033[34mPlayer failed to reach the end (memo)\033[0m")
                 return False
 
-            self.print(f"Reach end with path {movement} (memo)")
+            self.print(f"\033[34mReach end with path {movement} (memo)\033[0m")
             self.movement += movement
             return True
 
         if str(self.board) in MEMO2:
-            self.print("Board already exists")
+            self.print("\033[35mBoard already exists\033[0m")
             return False
 
         MEMO2[str(self.board)] = True
@@ -490,7 +490,7 @@ class Node:
                 if len(result) == 0 or len(new_node.movement) < len(result):
                     result = new_node.movement
                     self.max_path_length = min(self.max_path_length, len(result))
-                    self.print(f"New best path: {result}")
+                    self.print(f"\033[92mNew best path: {result}\033[0m")
                     break  # comment this line to find the optimal path
                 else:
                     self.print(f"Same or worse path: {new_node.movement}")
@@ -504,7 +504,7 @@ class Node:
             return True
 
         if self.depth == 0:
-            print(f"Player failed to reach the end")
+            print(f"\033[91mPlayer failed to reach the end\033[0m")
         else:
-            self.print(f"Player failed to reach the end")
+            self.print(f"\033[91mPlayer failed to reach the end\033[0m")
         return False
