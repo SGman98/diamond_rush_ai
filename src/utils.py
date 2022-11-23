@@ -22,6 +22,9 @@ def path_to_movement(path):
 
 
 def a_star(grid, start, end):
+    if start.x == end.x and start.y == end.y:
+        return ""
+
     # Manhattan distance
     def h(p1, p2):
         x1, y1 = p1
@@ -76,4 +79,4 @@ def a_star(grid, start, end):
         if current != start:
             current.make_closed()
 
-    return ""
+    return None

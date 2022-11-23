@@ -10,6 +10,7 @@ LEFT = "a"
 RIGHT = "d"
 
 MEMO: Dict[str, str] = {}
+MEMO2: Dict[str, bool] = {}
 
 
 class Cell:
@@ -162,6 +163,20 @@ class Cell:
             if not grid[self.x][self.y - 1].is_blocked():
                 self.neighbors.append(grid[self.x][self.y - 1])
 
+    def get_rocks_movement(self):
+        rocks = []
+        for neighbor in self.neighbors:
+            if neighbor.isrock:
+                if neighbor.x < self.x:
+                    rocks.append(UP)
+                elif neighbor.x > self.x:
+                    rocks.append(DOWN)
+                elif neighbor.y < self.y:
+                    rocks.append(LEFT)
+                elif neighbor.y > self.y:
+                    rocks.append(RIGHT)
+        return rocks
+
     def to_string(self):
         str = ""
         str += "1" if self.ispath else "0"
@@ -268,16 +283,14 @@ class Board:
 
         return a_star(grid, start_cell, end_cell)
 
-    def update_state(self, player):
+    def update_state(self, player: "Player", post_move: str):
         cell = self.get_cell(player.pos)
         if cell.iskey and not player.has_key:
             player.has_key = True
             cell.iskey = False
-            return
         if cell.isdiamond:
             player.diamonds -= 1
             cell.isdiamond = False
-            return
         if cell.isspike:
             cell.make_wall()
             return
@@ -286,6 +299,29 @@ class Board:
             cell.isgate = False
             player.has_key = False
             return
+
+        MOVEMENT = {UP: (-1, 0), DOWN: (1, 0), LEFT: (0, -1), RIGHT: (0, 1)}
+        if cell.isrock:
+            target = self.get_cell(
+                (
+                    player.pos[0] + MOVEMENT[post_move][0],
+                    player.pos[1] + MOVEMENT[post_move][1],
+                )
+            )
+            cell.isrock = False
+            cell.make_path()
+
+            if target.islava:
+                pass
+            elif target.ishole:
+                # fill hole
+                target.make_path()
+                target.ishole = False
+            elif target.ispath:
+                # move rock
+                target.make_rock()
+            else:
+                print("WTF!! This should not happen")
 
 
 class Player:
@@ -314,7 +350,7 @@ class Node:
         end: Tuple[int, int],
         has_key: bool = False,
         depth: int = 0,
-        max_path_length: int = 1000,
+        max_path_length: int = 200,
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(start, has_key, self.board.get_total_diamonds())
@@ -330,23 +366,23 @@ class Node:
         global LOGGING
         if not LOGGING:
             return
-        print(">\t" * self.depth + message)
+        print("> " * self.depth + message)
 
     def move(self, path: str):
-        self.movement = path
+        self.movement = "".join(path)
 
         for direction in self.movement:
             self.player.move(direction)
-            self.board.update_state(self.player)
+            self.board.update_state(self.player, path[1])
 
     def get_interest_points(self):
-        interest_points: List[str] = []
+        interest_points: List[Tuple[str, str]] = []
 
         for i, row in enumerate(self.board.grid):
             for j, cell in enumerate(row):
                 path = self.board.get_path(self.player, (i, j))
 
-                if path == "":
+                if path == None:
                     continue
 
                 is_exit = self.player.diamonds == 0 and cell.isexit
@@ -355,23 +391,47 @@ class Node:
                 is_diamond = cell.isdiamond
 
                 if is_exit or is_key or is_gate or is_diamond:
-                    interest_points.append(path)
+                    interest_points.append((path, ""))
 
-        interest_points.sort(key=lambda x: len(x))
+                MOVEMENT = {UP: (-1, 0), DOWN: (1, 0), LEFT: (0, -1), RIGHT: (0, 1)}
 
-        interest_points_final: List[str] = []
+                for direction in MOVEMENT:
+                    neighbor = self.board.get_cell(
+                        (i + MOVEMENT[direction][0], j + MOVEMENT[direction][1])
+                    )
+                    otherside = self.board.get_cell(
+                        (
+                            i + MOVEMENT[direction][0] * 2,
+                            j + MOVEMENT[direction][1] * 2,
+                        )
+                    )
+
+                    if (
+                        neighbor != None
+                        and otherside != None
+                        and neighbor.isrock
+                        and (otherside.ispath or otherside.ishole or otherside.islava)
+                    ):
+                        interest_points.append((path, direction))
+
+        interest_points.sort(key=lambda x: len("".join(x)))
+
+        interest_points_final: List[Tuple[str, str]] = []
         for path in interest_points:
             for path2 in interest_points:
-                if path == path2:
+                if "".join(path) == "".join(path2):
                     continue
 
-                if path.startswith(path2):
+                if "".join(path).startswith("".join(path2)):
                     break
             else:
                 interest_points_final.append(path)
 
         def shorter_than_max(x):
-            return len(x) <= self.max_path_length
+            result = len("".join(x)) <= self.max_path_length
+            if not result:
+                print("" + f"Path {x} is too long" + "")
+            return result
 
         return list(filter(shorter_than_max, interest_points_final))
 
@@ -380,6 +440,7 @@ class Node:
 
         if self.player.pos == self.end:
             self.print("Reached end")
+
             return True
 
         memo_key = str(self)
@@ -395,11 +456,19 @@ class Node:
             self.movement += movement
             return True
 
+        if str(self.board) in MEMO2:
+            self.print("Board already exists")
+            return False
+
+        MEMO2[str(self.board)] = True
+
         result = ""
 
         interest_points = self.get_interest_points()
 
         for path in interest_points:
+
+            complete_path = "".join(path)
 
             new_node = Node(
                 self.board.copy(),
@@ -407,11 +476,15 @@ class Node:
                 self.end,
                 self.player.has_key,
                 self.depth + 1,
-                self.max_path_length - len(path),
+                self.max_path_length - len(complete_path),
             )
 
             new_node.move(path)
-            new_node.print(f"Moved to {new_node.player.pos} with path {path}")
+            for row in new_node.board.grid:
+                for cell in row:
+                    cell.update_neighbors(new_node.board.grid)
+
+            new_node.print(f"Moved to {new_node.player.pos} with path {complete_path}")
 
             if new_node.solve():
                 if len(result) == 0 or len(new_node.movement) < len(result):
@@ -430,5 +503,8 @@ class Node:
                 print(f"Final path: {self.movement}")
             return True
 
-        self.print("Player failed to reach the end")
+        if self.depth == 0:
+            print(f"Player failed to reach the end")
+        else:
+            self.print(f"Player failed to reach the end")
         return False
