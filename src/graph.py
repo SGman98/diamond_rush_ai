@@ -261,7 +261,7 @@ class Board:
 
         return a_star(grid, start_cell, end_cell)
 
-    def update_state(self, player):
+    def update_state(self, player: "Player"):
         cell = self.get_cell(player.pos)
         if cell.iskey and not player.has_key:
             player.has_key = True
@@ -306,19 +306,29 @@ class Node:
         start: Tuple[int, int],
         end: Tuple[int, int],
         has_key: bool = False,
+        diamonds: int = -1,
         depth: int = 0,
         max_path_length: int = 1000,
         logging: bool = True,
         optimal: bool = False,
+        interest_points: List[Cell] = None,
     ):
         self.board = Board(board, depth == 0)
-        self.player = Player(start, has_key, self.board.get_total_diamonds())
+        self.player = Player(
+            start,
+            has_key,
+            self.board.get_total_diamonds() if diamonds == -1 else diamonds,
+        )
         self.end = end
         self.depth = depth
         self.max_path_length = max_path_length
         self.movement = ""
         self.logging = logging
         self.optimal = optimal
+        if interest_points is None:
+            self.interest_points = self.get_all_interest_points()
+        else:
+            self.interest_points = interest_points
 
     def __repr__(self):
         return str(self.board) + str(self.player)
@@ -343,23 +353,32 @@ class Node:
             self.player.move(direction)
             self.board.update_state(self.player)
 
+    def get_all_interest_points(self):
+        interest_points: List[Cell] = []
+
+        for row in self.board.grid:
+            for cell in row:
+                if cell.isdiamond or cell.iskey or cell.isexit or cell.isgate:
+                    interest_points.append(cell)
+
+        return interest_points
+
     def get_interest_points(self):
         interest_points: List[str] = []
 
-        for i, row in enumerate(self.board.grid):
-            for j, cell in enumerate(row):
-                path = self.board.get_path(self.player, (i, j))
+        for cell in self.interest_points:
+            path = self.board.get_path(self.player, (cell.x, cell.y))
 
-                if path == "":
-                    continue
+            if path == "":
+                continue
 
-                is_exit = self.player.diamonds == 0 and cell.isexit
-                is_key = not self.player.has_key and cell.iskey
-                is_gate = self.player.has_key and cell.isgate
-                is_diamond = cell.isdiamond
+            is_exit = self.player.diamonds == 0 and cell.isexit
+            is_key = not self.player.has_key and cell.iskey
+            is_gate = self.player.has_key and cell.isgate
+            is_diamond = cell.isdiamond
 
-                if is_exit or is_key or is_gate or is_diamond:
-                    interest_points.append(path)
+            if is_exit or is_key or is_gate or is_diamond:
+                interest_points.append(path)
 
         interest_points.sort(key=lambda x: len(x))
 
@@ -389,6 +408,10 @@ class Node:
         if self.player.pos == self.end:
             return True
 
+        self.interest_points = list(
+            filter(lambda x: (x.x, x.y) != self.player.pos, self.interest_points)
+        )
+
         memo_key = str(self)
 
         if memo_key in MEMO:
@@ -413,10 +436,12 @@ class Node:
                 self.player.pos,
                 self.end,
                 self.player.has_key,
+                self.player.diamonds,
                 self.depth + 1,
                 self.max_path_length - len(path),
                 self.logging,
                 self.optimal,
+                self.interest_points.copy(),
             )
 
             if new_node.solve(path):
