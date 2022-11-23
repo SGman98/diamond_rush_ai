@@ -17,7 +17,10 @@ class Cell:
         self.x = x
         self.y = y
 
+        # For A* search
         self.closed = False
+        self.total_rows = rows
+        self.total_cols = cols
 
         # collectable items
         self.isdiamond = False
@@ -39,9 +42,6 @@ class Cell:
         self.ispath = False  # whether the cell is a path or wall
 
         self.isexit = False
-
-        self.total_rows = rows
-        self.total_cols = cols
 
         self.neighbors: List[Cell] = []
 
@@ -326,11 +326,19 @@ class Node:
     def __repr__(self):
         return str(self.board) + str(self.player)
 
-    def print(self, message: str = ""):
+    def print(self, message: str = "", type: str = "info"):
         global LOGGING
         if not LOGGING:
             return
-        print(">\t" * self.depth + message)
+
+        colors = {
+            "info": "\033[94m",
+            "error": "\033[91m",
+            "success": "\033[92m",
+            "warning": "\033[93m",
+        }
+
+        print("> " * self.depth + colors[type] + message + "\033[0m")
 
     def move(self, path: str):
         self.movement = path
@@ -375,11 +383,14 @@ class Node:
 
         return list(filter(shorter_than_max, interest_points_final))
 
-    def solve(self):
-        global LOGGING
+    def solve(self, path=""):
+        if path != "":
+            self.move(path)
+            self.print(f"Moved to {self.player.pos} with path {self.movement}")
+        else:
+            self.print(f"Starting at {self.player.pos}")
 
         if self.player.pos == self.end:
-            self.print("Reached end")
             return True
 
         memo_key = str(self)
@@ -388,10 +399,10 @@ class Node:
             movement = MEMO[memo_key]
 
             if movement == "":
-                self.print("Player failed to reach the end (memo)")
+                self.print("Player failed to reach the end (memo)", "error")
                 return False
 
-            self.print(f"Reach end with path {movement} (memo)")
+            self.print(f"Reach end with path {movement} (memo)", "success")
             self.movement += movement
             return True
 
@@ -410,25 +421,22 @@ class Node:
                 self.max_path_length - len(path),
             )
 
-            new_node.move(path)
-            new_node.print(f"Moved to {new_node.player.pos} with path {path}")
-
-            if new_node.solve():
+            if new_node.solve(path):
                 if len(result) == 0 or len(new_node.movement) < len(result):
                     result = new_node.movement
                     self.max_path_length = min(self.max_path_length, len(result))
-                    self.print(f"New best path: {result}")
+                    new_node.print(f"Exit found with path {result}", "success")
                     break  # comment this line to find the optimal path
                 else:
-                    self.print(f"Same or worse path: {new_node.movement}")
+                    new_node.print(f"Exit found but not optimal", "warning")
 
         MEMO[memo_key] = result
 
         if result != "":
             self.movement += result
             if self.depth == 0:
-                print(f"Final path: {self.movement}")
+                self.print(f"Final path: {self.movement}", "success")
             return True
 
-        self.print("Player failed to reach the end")
+        self.print("Player failed to reach the end", "error")
         return False
