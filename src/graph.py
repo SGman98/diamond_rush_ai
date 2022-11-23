@@ -214,6 +214,8 @@ class Board:
         return ".".join([cell.to_string() for row in self.grid for cell in row])
 
     def get_cell(self, pos: Tuple[int, int]):
+        if pos[0] < 0 or pos[0] >= self.height or pos[1] < 0 or pos[1] >= self.width:
+            return None
         return self.grid[pos[0]][pos[1]]
 
     def get_total_diamonds(self):
