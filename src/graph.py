@@ -1,13 +1,6 @@
 from typing import Dict, List, Tuple
 
-from utils import *
-
-LOGGING = True
-
-UP = "w"
-DOWN = "s"
-LEFT = "a"
-RIGHT = "d"
+from utils import UP, DOWN, LEFT, RIGHT, a_star
 
 MEMO: Dict[str, str] = {}
 
@@ -315,6 +308,8 @@ class Node:
         has_key: bool = False,
         depth: int = 0,
         max_path_length: int = 1000,
+        logging: bool = True,
+        optimal: bool = False,
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(start, has_key, self.board.get_total_diamonds())
@@ -322,13 +317,14 @@ class Node:
         self.depth = depth
         self.max_path_length = max_path_length
         self.movement = ""
+        self.logging = logging
+        self.optimal = optimal
 
     def __repr__(self):
         return str(self.board) + str(self.player)
 
     def print(self, message: str = "", type: str = "info"):
-        global LOGGING
-        if not LOGGING:
+        if not self.logging:
             return
 
         colors = {
@@ -419,6 +415,8 @@ class Node:
                 self.player.has_key,
                 self.depth + 1,
                 self.max_path_length - len(path),
+                self.logging,
+                self.optimal,
             )
 
             if new_node.solve(path):
@@ -426,7 +424,8 @@ class Node:
                     result = new_node.movement
                     self.max_path_length = min(self.max_path_length, len(result))
                     new_node.print(f"Exit found with path {result}", "success")
-                    break  # comment this line to find the optimal path
+                    if not self.optimal:
+                        break
                 else:
                     new_node.print(f"Exit found but not optimal", "warning")
 
@@ -434,8 +433,6 @@ class Node:
 
         if result != "":
             self.movement += result
-            if self.depth == 0:
-                self.print(f"Final path: {self.movement}", "success")
             return True
 
         self.print("Player failed to reach the end", "error")

@@ -1,19 +1,7 @@
 import graph
 
 
-def get_movement(lvl):
-    solutions = {
-        1: "dddddsssaaaaassdsdddds",
-        2: "aaaaasawwwwwwwwwdwdsddssddsaassaas",
-        3: "dssssssassdddddddaaawwwwddwdssawaaawwssssssdswwwwwwawwdwddwdassdw",
-        4: "ddddssaaaaassddddddassaaaaasdwdsssdswwawddwdsss",
-        # ...
-    }
-
-    return solutions.get(lvl, "")
-
-
-def get_movement_from_array(arr):
+def get_movement_from_array(arr, logging=True, optimal=False):
     start = None
     end = None
 
@@ -24,13 +12,11 @@ def get_movement_from_array(arr):
             elif arr[row][col] == "E":
                 end = (row, col)
 
-    # movement = graph.get_path(arr, start, end)
-
     if start is None or end is None:
         print("No start or end found")
         return ""
 
-    player = graph.Node(arr, start, end)
+    player = graph.Node(arr, start, end, logging=logging, optimal=optimal)
 
     # solve
     result = player.solve()
@@ -41,4 +27,5 @@ def get_movement_from_array(arr):
     else:
         movement = []
 
+    print(f"Result path: {movement}" if result else "No path found")
     return "".join(movement)

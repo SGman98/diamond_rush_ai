@@ -1,3 +1,4 @@
+import sys
 import time
 
 import ai
@@ -5,58 +6,46 @@ import image_processing as img_proc
 from browser import Browser
 
 
-def start_game(lvl, browser):
-    browser.select_level(lvl)
-
-    time.sleep(3)
-
+def start_game(browser, logging=True, optimal=False, show_image=False):
     board = browser.get_board()
     result = img_proc.process_board(board)
 
-    # recreated = img_proc.recreate_board(result, 8, 12)
-    # img_proc.show_image(recreated)
+    if show_image:
+        recreated = img_proc.recreate_board(result, 8, 12)
+        img_proc.show_image(recreated)
 
-    movement = ai.get_movement_from_array(result)
+    movement = ai.get_movement_from_array(result, logging=logging, optimal=optimal)
     browser.move(movement)
 
 
-def main():
+def main(lvl, logging=True, optimal=False, show_image=False):
     browser = Browser()
-
-    while True:
-        user_input = input("Select level (1-20) or (q)uit: ")
-
-        if user_input == "q":
-            break
-
-        if not user_input.isdigit():
-            print("Invalid input")
-            continue
-
-        user_input = int(user_input)
-
-        if user_input not in range(1, 21):
-            print("Invalid level")
-            continue
-
-        start_game(user_input, browser)
+    time.sleep(1)
+    if lvl is not None:
+        browser.select_level(lvl)
+        time.sleep(3)
+        start_game(browser, logging, optimal, show_image)
+    else:
+        browser.unlock_all_levels()
+        while True:
+            if input("Press enter to start or write exit to close ") == "exit":
+                break
+            start_game(browser, logging, optimal, show_image)
 
     browser.close()
 
 
 if __name__ == "__main__":
-    import sys
+    args = sys.argv[1:]
 
-    if len(sys.argv) > 1:
-        assert sys.argv[1].isdigit(), "Invalid input"
+    lvl = next(
+        (int(arg) for arg in args if arg.isdigit() and 1 <= int(arg) <= 20),
+        None,
+    )
 
-        level = int(sys.argv[1])
-
-        assert level in range(1, 21), "Invalid level"
-
-        browser = Browser()
-        time.sleep(3)
-        start_game(level, browser)
-        browser.close()
-    else:
-        main()
+    main(
+        lvl,
+        "--no-logs" not in args,
+        "--optimal" in args,
+        "--show-image" in args,
+    )

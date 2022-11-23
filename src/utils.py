@@ -1,5 +1,10 @@
 from queue import PriorityQueue
 
+UP = "↑"
+DOWN = "↓"
+LEFT = "←"
+RIGHT = "→"
+
 
 def path_to_movement(path):
     movement = ""
@@ -10,13 +15,13 @@ def path_to_movement(path):
         x2, y2 = path[i + 1].get_pos()
 
         if x1 < x2:
-            movement += "s"
+            movement += DOWN
         elif x1 > x2:
-            movement += "w"
+            movement += UP
         elif y1 < y2:
-            movement += "d"
+            movement += RIGHT
         elif y1 > y2:
-            movement += "a"
+            movement += LEFT
 
     return movement
 

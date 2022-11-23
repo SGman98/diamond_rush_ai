@@ -3,6 +3,7 @@ import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from utils import UP, DOWN, LEFT, RIGHT
 
 
 class Browser:
@@ -14,10 +15,10 @@ class Browser:
         self.driver.switch_to.frame(iframe)
 
         self.map_moves = {
-            "a": Keys.ARROW_LEFT,
-            "d": Keys.ARROW_RIGHT,
-            "w": Keys.ARROW_UP,
-            "s": Keys.ARROW_DOWN,
+            UP: Keys.ARROW_UP,
+            DOWN: Keys.ARROW_DOWN,
+            LEFT: Keys.ARROW_LEFT,
+            RIGHT: Keys.ARROW_RIGHT,
         }
 
     def close(self):
@@ -45,3 +46,15 @@ class Browser:
         img = np.frombuffer(screenshot, dtype=np.uint8)
         img = cv.imdecode(img, cv.IMREAD_COLOR)
         return img
+
+    def unlock_all_levels(self):
+        script = f"window.localStorage.setItem('isNewPlayer','false')"
+        self.driver.execute_script(script)
+
+        for i in range(1, 20):
+            script = f"window.localStorage.setItem('Level {i}','passed')"
+            self.driver.execute_script(script)
+        self.driver.refresh()
+
+        iframe = self.driver.find_element("css selector", "iframe")
+        self.driver.switch_to.frame(iframe)
