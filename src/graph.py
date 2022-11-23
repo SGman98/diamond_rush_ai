@@ -281,6 +281,9 @@ class Board:
 
     def update_state(self, player: "Player", post_move: str):
         cell = self.get_cell(player.pos)
+        if cell is None:
+            return
+
         if cell.iskey and not player.has_key:
             player.has_key = True
             cell.iskey = False
@@ -304,6 +307,9 @@ class Board:
                     player.pos[1] + MOVEMENT[post_move][1],
                 )
             )
+            if target is None:
+                return
+
             cell.isrock = False
             cell.make_path()
 
@@ -378,7 +384,7 @@ class Node:
             for j, cell in enumerate(row):
                 path = self.board.get_path(self.player, (i, j))
 
-                if path == None:
+                if path is None:
                     continue
 
                 is_exit = self.player.diamonds == 0 and cell.isexit
@@ -403,8 +409,8 @@ class Node:
                     )
 
                     if (
-                        neighbor != None
-                        and otherside != None
+                        neighbor is not None
+                        and otherside is not None
                         and neighbor.isrock
                         and (otherside.ispath or otherside.ishole or otherside.islava)
                     ):
@@ -426,7 +432,7 @@ class Node:
         def shorter_than_max(x):
             result = len("".join(x)) <= self.max_path_length
             if not result:
-                print("\033[33m" + f"Path {x} is too long" + "\033[0m")
+                self.print("\033[33m" + f"Path {''.join(x)} is too long" + "\033[0m")
             return result
 
         return list(filter(shorter_than_max, interest_points_final))
@@ -500,7 +506,7 @@ class Node:
             return True
 
         if self.depth == 0:
-            print(f"\033[91mPlayer failed to reach the end\033[0m")
+            print("\033[91mPlayer failed to reach the end\033[0m")
         else:
-            self.print(f"\033[91mPlayer failed to reach the end\033[0m")
+            self.print("\033[91mPlayer failed to reach the end\033[0m")
         return False
