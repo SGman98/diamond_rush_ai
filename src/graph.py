@@ -263,6 +263,8 @@ class Board:
 
     def update_state(self, player: "Player"):
         cell = self.get_cell(player.pos)
+        if cell is None:
+            return
         if cell.iskey and not player.has_key:
             player.has_key = True
             cell.iskey = False
@@ -311,7 +313,7 @@ class Node:
         max_path_length: int = 1000,
         logging: bool = True,
         optimal: bool = False,
-        interest_points: List[Cell] = None,
+        interest_points: List[Cell] = [],
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(
@@ -325,7 +327,7 @@ class Node:
         self.movement = ""
         self.logging = logging
         self.optimal = optimal
-        if interest_points is None:
+        if interest_points == []:
             self.interest_points = self.get_all_interest_points()
         else:
             self.interest_points = interest_points
@@ -452,7 +454,7 @@ class Node:
                     if not self.optimal:
                         break
                 else:
-                    new_node.print(f"Exit found but not optimal", "warning")
+                    new_node.print("Exit found but not optimal", "warning")
 
         MEMO[memo_key] = result
 

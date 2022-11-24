@@ -48,7 +48,7 @@ class Browser:
         return img
 
     def unlock_all_levels(self):
-        script = f"window.localStorage.setItem('isNewPlayer','false')"
+        script = "window.localStorage.setItem('isNewPlayer','false')"
         self.driver.execute_script(script)
 
         for i in range(1, 20):
