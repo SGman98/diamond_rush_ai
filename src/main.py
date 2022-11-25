@@ -18,6 +18,14 @@ def start_game(browser, logging=True, optimal=False, show_image=False):
     browser.move(movement)
 
 
+def help():
+    print("'no-logs' to disable logs")
+    print("'optimal' to find optimal solution")
+    print("'show-image' to show recreated board")
+    print("'exit' to close")
+    print("'help' to show this message")
+
+
 def main(lvl, logging=True, optimal=False, show_image=False):
     browser = Browser()
     time.sleep(1)
@@ -27,9 +35,21 @@ def main(lvl, logging=True, optimal=False, show_image=False):
         start_game(browser, logging, optimal, show_image)
     else:
         browser.unlock_all_levels()
+        help()
         while True:
-            if input("Press enter to start or write exit to close ") == "exit":
+            user_input = input("Write your options separated by space: ")
+
+            if "exit" in user_input:
                 break
+
+            if "help" in user_input:
+                help()
+                continue
+
+            logging = "no-logs" not in user_input
+            optimal = "optimal" in user_input
+            show_image = "show-image" in user_input
+
             start_game(browser, logging, optimal, show_image)
 
     browser.close()

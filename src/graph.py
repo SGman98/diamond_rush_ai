@@ -313,7 +313,10 @@ class Node:
         max_path_length: int = 1000,
         logging: bool = True,
         optimal: bool = False,
-        interest_points: List[Cell] = [],
+        interest_points: List[Tuple[int, int]] = [],
+        rocks: Dict[Tuple[int, int], Tuple[int, int]] = {},
+        rock_interest_points: List[Tuple[int, int]] = [],
+        rock_movement_memo: Dict[str, str] = {},
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(
@@ -327,10 +330,21 @@ class Node:
         self.movement = ""
         self.logging = logging
         self.optimal = optimal
-        if interest_points == []:
-            self.interest_points = self.get_all_interest_points()
-        else:
-            self.interest_points = interest_points
+
+        if interest_points == [] or rocks == {} or rock_interest_points == []:
+            result = self.get_all_interest_points()
+            if interest_points == []:
+                interest_points = result[0]
+            if rocks == {}:
+                rocks = result[1]
+            if rock_interest_points == []:
+                rock_interest_points = result[2]
+
+        self.interest_points = interest_points
+        self.rocks = rocks
+        self.rock_interest_points = rock_interest_points
+
+        self.rock_movement_memo = rock_movement_memo
 
     def __repr__(self):
         return str(self.board) + str(self.player)
@@ -355,23 +369,101 @@ class Node:
             self.player.move(direction)
             self.board.update_state(self.player)
 
+        cell = self.board.get_cell(self.player.pos)
+        if cell is None:
+            return
+
+        if cell.isrock:
+            if self.movement[-1] == UP:
+                target = (cell.x - 1, cell.y)
+            elif self.movement[-1] == DOWN:
+                target = (cell.x + 1, cell.y)
+            elif self.movement[-1] == LEFT:
+                target = (cell.x, cell.y - 1)
+            elif self.movement[-1] == RIGHT:
+                target = (cell.x, cell.y + 1)
+            else:
+                target = (-1, -1)
+
+            target_cell = self.board.get_cell(target)
+            if target_cell is None:
+                return
+
+            if not (
+                (target_cell.x, target_cell.y) in self.rock_interest_points
+                or target_cell.ispath
+                or target_cell.islava
+            ):
+                print(f"Target {target} is not in rock interest points")
+                return
+
+            cell.isrock = False
+            if not cell.isspike:
+                cell.make_path()
+            # else:
+            #     print("Rock is on spike")
+            original_pos = self.rocks.pop((cell.x, cell.y))
+
+            rock_movement = str(
+                (
+                    (cell.x, cell.y),
+                    self.movement[-1],
+                    original_pos,
+                )
+            )
+
+            if rock_movement in self.rock_movement_memo:
+                self.print("Rock movement is in memo", "error")
+                return False
+
+            if target_cell.ishole:
+                self.print(f"Filled hole at {target_cell}")
+                target_cell.make_path()
+                target_cell.ishole = False
+                self.rock_interest_points.remove((target_cell.x, target_cell.y))
+                self.rock_movement_memo[rock_movement] = "FILL"
+            elif target_cell.islava:
+                self.print(f"Rock fell into lava at {target_cell}")
+                self.rock_movement_memo[rock_movement] = "FALL"
+                pass
+            elif target_cell.ispath:
+                self.print(f"Rock moved to {target_cell}")
+                target_cell.make_rock()
+                self.rocks[(target_cell.x, target_cell.y)] = original_pos
+                self.rock_movement_memo[rock_movement] = "MOVE"
+            else:
+                self.print(f"Rock ??? at {target_cell}")
+
+            cell.update_neighbors(self.board.grid)
+            target_cell.update_neighbors(self.board.grid)
+
+            return target_cell
+
     def get_all_interest_points(self):
-        interest_points: List[Cell] = []
+        interest_points: List[Tuple[int, int]] = []
+        # rocks: List[Tuple[int, int]] = []
+        rocks: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+        rock_interest_points: List[Tuple[int, int]] = []
 
-        for row in self.board.grid:
-            for cell in row:
+        for i, row in enumerate(self.board.grid):
+            for j, cell in enumerate(row):
                 if cell.isdiamond or cell.iskey or cell.isexit or cell.isgate:
-                    interest_points.append(cell)
+                    interest_points.append((i, j))
+                if cell.isrock:
+                    rocks[(i, j)] = (i, j)
+                if cell.ishole:
+                    rock_interest_points.append((i, j))
 
-        return interest_points
+        return interest_points, rocks, rock_interest_points
 
     def get_interest_points(self):
         interest_points: List[str] = []
 
-        for cell in self.interest_points:
-            path = self.board.get_path(self.player, (cell.x, cell.y))
+        for x, y in self.interest_points:
+            path = self.board.get_path(self.player, (x, y))
+            cell = self.board.get_cell((x, y))
 
-            if path == "":
+            if path is None or path == "" or cell is None:
                 continue
 
             is_exit = self.player.diamonds == 0 and cell.isexit
@@ -381,6 +473,38 @@ class Node:
 
             if is_exit or is_key or is_gate or is_diamond:
                 interest_points.append(path)
+
+        for x, y in self.rocks.keys():
+            rock = self.board.get_cell((x, y))
+            if rock is None:
+                continue
+
+            for neighbor in rock.neighbors:
+                post_move = ""
+                if rock.x + 1 == neighbor.x:
+                    opposite_pos = (rock.x - 1, rock.y)
+                    post_move = UP
+                elif rock.x - 1 == neighbor.x:
+                    opposite_pos = (rock.x + 1, rock.y)
+                    post_move = DOWN
+                elif rock.y + 1 == neighbor.y:
+                    opposite_pos = (rock.x, rock.y - 1)
+                    post_move = LEFT
+                elif rock.y - 1 == neighbor.y:
+                    opposite_pos = (rock.x, rock.y + 1)
+                    post_move = RIGHT
+                else:
+                    opposite_pos = (-1, -1)
+
+                opposite_cell = self.board.get_cell(opposite_pos)
+                if opposite_cell is not None and (
+                    opposite_cell.ispath or opposite_cell.ishole or opposite_cell.islava
+                ):
+                    path = self.board.get_path(self.player, (neighbor.x, neighbor.y))
+                    if path is None:
+                        continue
+                    path += post_move
+                    interest_points.append(path)
 
         interest_points.sort(key=lambda x: len(x))
 
@@ -402,7 +526,9 @@ class Node:
 
     def solve(self, path=""):
         if path != "":
-            self.move(path)
+            res = self.move(path)
+            if res == False:
+                return False
             self.print(f"Moved to {self.player.pos} with path {self.movement}")
         else:
             self.print(f"Starting at {self.player.pos}")
@@ -411,7 +537,7 @@ class Node:
             return True
 
         self.interest_points = list(
-            filter(lambda x: (x.x, x.y) != self.player.pos, self.interest_points)
+            filter(lambda x: x != self.player.pos, self.interest_points)
         )
 
         memo_key = str(self)
@@ -444,6 +570,9 @@ class Node:
                 self.logging,
                 self.optimal,
                 self.interest_points.copy(),
+                self.rocks.copy(),
+                self.rock_interest_points.copy(),
+                self.rock_movement_memo.copy(),
             )
 
             if new_node.solve(path):
@@ -454,7 +583,9 @@ class Node:
                     if not self.optimal:
                         break
                 else:
-                    new_node.print("Exit found but not optimal", "warning")
+                    new_node.print(
+                        f"Exit found with path {result} (not optimal)", "warning"
+                    )
 
         MEMO[memo_key] = result
 
