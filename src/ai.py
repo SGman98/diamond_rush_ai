@@ -25,7 +25,6 @@ def get_movement_from_array(arr, logging=True, optimal=False):
     if result:
         movement = player.movement
     else:
-        movement = []
+        movement = ""
 
-    print(f"Result path: {movement}" if result else "No path found")
-    return "".join(movement)
+    return movement
