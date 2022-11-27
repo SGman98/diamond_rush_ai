@@ -317,6 +317,7 @@ class Node:
         rocks: Dict[Tuple[int, int], Tuple[int, int]] = {},
         rock_interest_points: List[Tuple[int, int]] = [],
         rock_movement_memo: Dict[str, str] = {},
+        doors: List[Tuple[int, int]] = [],
     ):
         self.board = Board(board, depth == 0)
         self.player = Player(
@@ -331,7 +332,12 @@ class Node:
         self.logging = logging
         self.optimal = optimal
 
-        if interest_points == [] or rocks == {} or rock_interest_points == []:
+        if (
+            interest_points == []
+            or rocks == {}
+            or rock_interest_points == []
+            or doors == []
+        ):
             result = self.get_all_interest_points()
             if interest_points == []:
                 interest_points = result[0]
@@ -339,17 +345,20 @@ class Node:
                 rocks = result[1]
             if rock_interest_points == []:
                 rock_interest_points = result[2]
+            if doors == []:
+                doors = result[3]
 
         self.interest_points = interest_points
         self.rocks = rocks
         self.rock_interest_points = rock_interest_points
+        self.doors = doors
 
         self.rock_movement_memo = rock_movement_memo
 
     def __repr__(self):
         return str(self.board) + str(self.player)
 
-    def print(self, message: str = "", type: str = "info"):
+    def print(self, message: str = "", type: str = "default"):
         if not self.logging:
             return
 
@@ -358,6 +367,7 @@ class Node:
             "error": "\033[91m",
             "success": "\033[92m",
             "warning": "\033[93m",
+            "default": "\033[0m",
         }
 
         print("> " * self.depth + colors[type] + message + "\033[0m")
@@ -417,17 +427,20 @@ class Node:
                 return False
 
             if target_cell.ishole:
-                self.print(f"Filled hole at {target_cell}")
+                self.print(f"Filled hole at {target_cell}", "info")
                 target_cell.make_path()
                 target_cell.ishole = False
                 self.rock_interest_points.remove((target_cell.x, target_cell.y))
                 self.rock_movement_memo[rock_movement] = "FILL"
             elif target_cell.islava:
-                self.print(f"Rock fell into lava at {target_cell}")
+                self.print(f"Rock fell into lava at {target_cell}", "info")
                 self.rock_movement_memo[rock_movement] = "FALL"
                 pass
+            elif target_cell.isbutton:
+                self.print(f"Rock pressed button at {target_cell}", "info")
+                target_cell.make_wall()
             elif target_cell.ispath:
-                self.print(f"Rock moved to {target_cell}")
+                self.print(f"Rock moved to {target_cell}", "info")
                 target_cell.make_rock()
                 self.rocks[(target_cell.x, target_cell.y)] = original_pos
                 self.rock_movement_memo[rock_movement] = "MOVE"
@@ -441,9 +454,9 @@ class Node:
 
     def get_all_interest_points(self):
         interest_points: List[Tuple[int, int]] = []
-        # rocks: List[Tuple[int, int]] = []
         rocks: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
         rock_interest_points: List[Tuple[int, int]] = []
+        doors: List[Tuple[int, int]] = []
 
         for i, row in enumerate(self.board.grid):
             for j, cell in enumerate(row):
@@ -453,8 +466,10 @@ class Node:
                     rocks[(i, j)] = (i, j)
                 if cell.ishole:
                     rock_interest_points.append((i, j))
+                if cell.isdoor:
+                    doors.append((i, j))
 
-        return interest_points, rocks, rock_interest_points
+        return interest_points, rocks, rock_interest_points, doors
 
     def get_interest_points(self):
         interest_points: List[str] = []
@@ -525,6 +540,7 @@ class Node:
         return list(filter(shorter_than_max, interest_points_final))
 
     def solve(self, path=""):
+        res = None
         if path != "":
             res = self.move(path)
             if res == False:
@@ -555,37 +571,54 @@ class Node:
 
         result = ""
 
-        interest_points = self.get_interest_points()
+        doors = [None] if res is None or not res.isbutton else self.doors
 
-        for path in interest_points:
+        for door in doors:
+            if door is not None:
+                d = self.board.get_cell(door)
+                self.print(f"Opening door at {door}", "info")
+                d.make_open_door()
 
-            new_node = Node(
-                self.board.copy(),
-                self.player.pos,
-                self.end,
-                self.player.has_key,
-                self.player.diamonds,
-                self.depth + 1,
-                self.max_path_length - len(path),
-                self.logging,
-                self.optimal,
-                self.interest_points.copy(),
-                self.rocks.copy(),
-                self.rock_interest_points.copy(),
-                self.rock_movement_memo.copy(),
-            )
+            interest_points = self.get_interest_points()
 
-            if new_node.solve(path):
-                if len(result) == 0 or len(new_node.movement) < len(result):
-                    result = new_node.movement
-                    self.max_path_length = min(self.max_path_length, len(result))
-                    new_node.print(f"Exit found with path {result}", "success")
-                    if not self.optimal:
-                        break
-                else:
-                    new_node.print(
-                        f"Exit found with path {result} (not optimal)", "warning"
-                    )
+            self.print(f"Interest points: {interest_points}", "success")
+            self.print(f"Rocks: {self.rocks}", "success")
+
+            for path in interest_points:
+
+                new_node = Node(
+                    self.board.copy(),
+                    self.player.pos,
+                    self.end,
+                    self.player.has_key,
+                    self.player.diamonds,
+                    self.depth + 1,
+                    self.max_path_length - len(path),
+                    self.logging,
+                    self.optimal,
+                    self.interest_points.copy(),
+                    self.rocks.copy(),
+                    self.rock_interest_points.copy(),
+                    self.rock_movement_memo.copy(),
+                    self.doors.copy(),
+                )
+
+                if new_node.solve(path):
+                    if len(result) == 0 or len(new_node.movement) < len(result):
+                        result = new_node.movement
+                        self.max_path_length = min(self.max_path_length, len(result))
+                        new_node.print(f"Exit found with path {result}", "success")
+                        if not self.optimal:
+                            break
+                    else:
+                        new_node.print(
+                            f"Exit found with path {result} (not optimal)", "warning"
+                        )
+
+            if door is not None:
+                d = self.board.get_cell(door)
+                self.print(f"Closing door at {door}", "info")
+                d.make_closed_door()
 
         MEMO[memo_key] = result
 
