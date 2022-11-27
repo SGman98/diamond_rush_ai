@@ -14,7 +14,23 @@ def start_game(browser, logging=True, optimal=False, show_image=False):
         recreated = img_proc.recreate_board(result, 8, 12)
         img_proc.show_image(recreated)
 
+    start_time = time.perf_counter()
     movement = ai.get_movement_from_array(result, logging=logging, optimal=optimal)
+    end_time = time.perf_counter()
+
+    hours = int((end_time - start_time) // 3600)
+    minutes = int((end_time - start_time) // 60)
+    seconds = int((end_time - start_time) % 60)
+    milliseconds = int((end_time - start_time) * 1000 % 1000)
+
+    if movement != "":
+        print(
+            f"Found path in {hours}:{minutes}:{seconds}.{milliseconds} with length {len(movement)}"
+        )
+        print(f"Path: {movement}")
+    else:
+        print(f"No path found in {hours}:{minutes}:{seconds}.{milliseconds}")
+
     browser.move(movement)
 
 
